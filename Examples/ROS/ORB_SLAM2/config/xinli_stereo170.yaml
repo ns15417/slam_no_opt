@@ -1,0 +1,143 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+Camera.type: EUCM
+# Camera calibration and distortion parameters (OpenCV)
+Camera.fx: 278.03892487535046
+Camera.fy: 369.15381657392186
+Camera.cx: 305.61935346795786
+Camera.cy: 251.88154852037826
+
+Camera.k1: 0.7534313602711995
+Camera.k2: 0.9799229001143389
+Camera.p1: 0.0
+Camera.p2: 0.0
+
+Camera.width: 640
+Camera.height: 480
+
+# Camera frames per second
+Camera.fps: 4.0
+
+# stereo baseline times fx
+Camera.bf: 14.8
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+# Close/Far threshold. Baseline times.
+ThDepth: 35
+
+Camera.Tbc: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: f
+  data: [0.0006523043995053899, 0.0559522199728426, 0.9984332344123372,0.11602836,
+         -0.9997276725762263, -0.0233270837926204, -0.0006541001862235305,0.0063135074,
+         0.02332713407797745, -0.9981609069893705, -0.05595219900830853, 0.28549999, 
+         0., 0, 0.,1.]
+#--------------------------------------------------------------------------------------------
+# Stereo Rectification.
+# Only read in the CAMERA.R CAMERA.T both these parameters are transforamtion from left to right
+# so the x value of T is the location of left camera in the coordinate of right camera. normally negtive value
+#--------------------------------------------------------------------------------------------
+LEFT.height: 640
+LEFT.width: 480
+LEFT.D: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [0.7534313602711995, 0.9799229001143389, 0, 0 ,0 ]
+LEFT.K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [278.03892487535046, 0., 305.61935346795786, 0., 369.15381657392186, 251.88154852037826, 0., 0., 1. ]
+CAMERA.R: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [0.9995820059364029, 0.02834072208106074, -0.005711118986338262,
+          -0.028241723282307805, 0.9994611537879937, 0.016727436588226296,
+         0.006182109202981659, -0.016559152776988762, 0.999843775789551]
+CAMERA.T: !!opencv-matrix
+   rows: 1
+   cols: 3
+   dt: d
+   data: [-0.10270970185763932, 0.003424394222354394, -0.0006778683990082447]
+
+RIGHT.height: 640
+RIGHT.width: 480
+RIGHT.D: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [0.7534313602711995, 0.9799229001143389,0, 0, 0]
+RIGHT.K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [280.11784209196753, 0., 318.6553821636852, 0.,371.9723062060988,  245.99364503608842, 0., 0., 1. ]
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+#--------------------------------------------------------------------------------------------
+
+# ORB Extractor: Number of features per image
+ORBextractor.nFeatures: 800
+
+# ORB Extractor: Scale factor between levels in the scale pyramid
+ORBextractor.scaleFactor: 1.2
+
+# ORB Extractor: Number of levels in the scale pyramid
+ORBextractor.nLevels: 8
+
+# ORB Extractor: Fast threshold --- the pixel value difference between the center point with the circle points
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7
+
+#--------------------------------------------------------------------------------------------
+# Tracking Parameters
+#--------------------------------------------------------------------------------------------
+Track.nMatches: 30 # threshold for the number of matching features
+Track.SearchWindowSize: 20 # search window size for feature matching. high value means big search window
+Track.nFeaturesForStereoReinit: 500 # min number of features for reinitialization after traking lost
+Track.nThresTrackLocalMap: 30 # treshold for track local map
+LoopClose.nCovisibilityConsistencyTh: 6
+
+#--------------------------------------------------------------------------------------------
+# Robot Parameters
+#--------------------------------------------------------------------------------------------
+Robot.distCameraFromRobotCenter_x: 0.1162 # distance between camera and robot center in horizonal
+Robot.distCameraFromRobotCenter_y: 0
+Robot.distCameraFromRobotCenter_z: 0.2355 #dist between cam and robot center in vertiacal
+Robot.distbetwheels: 0.289  #0.325
+Robot.distOnePulse: 0.00053428 #0.000032057
+Robot.wheelradius: 0.1    #0.05
+Robot.PulsePerRev: 1862
+#--------------------------------------------------------------------------------------------
+# Scale Estimator Parameters
+#--------------------------------------------------------------------------------------------
+ScaleEst.minDistDR: 3.0   #  minimum DR distance for computing scale
+ScaleEst.mMinKFs: 10      #  minimum KFs
+ScaleEst.mScaleDriftThresh: 2.0 # relative scale drift threshold
+ScaleEst.mMinDist: 3.0    # minium DR distacne to check scale drift
+ScaleEst.mDELimit: 1.0    # absolute scale drift threshold
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
+

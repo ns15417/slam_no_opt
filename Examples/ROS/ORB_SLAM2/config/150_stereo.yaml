@@ -1,0 +1,140 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+Camera.type: EUCM
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 441.8652850263371
+Camera.fy: 440.6216913405288
+Camera.cx: 316.9916990776526
+Camera.cy: 262.2300810464732
+
+Camera.k1: 0.8120452
+Camera.k2: 0.98642619
+Camera.p1: 0.0
+Camera.p2: 0.0
+
+Camera.width: 640
+Camera.height: 480
+
+# Camera frames per second 
+Camera.fps: 20.0
+
+# stereo baseline times fx
+Camera.bf: 14.8
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+# Close/Far threshold. Baseline times.
+ThDepth: 40
+
+Camera.Tbc: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: f
+  data: [0.054333109, 0, 0.99852288 , 0.11602836,
+        -0.99852288, 0,  0.054333109, 0.0563135074,
+        0., -1,0, 0.50549999,
+        0., 0,0.,1.]
+#--------------------------------------------------------------------------------------------
+# Stereo Rectification. 
+# Only read in the CAMERA.R CAMERA.T both these parameters are transforamtion from left to right
+# so the x value of T is the location of left camera in the coordinate of right camera. normally negtive value
+#--------------------------------------------------------------------------------------------
+LEFT.height: 640
+LEFT.width: 480
+LEFT.D: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [0.8243467714598833, 0.9650102802097378, 0, 0 ,0 ]
+LEFT.K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [441.8652850263371, 0., 316.9916990776526, 0.,440.6216913405288, 262.2300810464732, 0., 0., 1. ]
+CAMERA.R: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [0.9984007201569993, -0.056374156268735855, -0.004237510468510627,
+          0.05640266380782765, 0.9983839872382043, 0.006939275302478014,
+          0.003839466807221601, -0.007167184337699293, 0.9999669444353163]
+
+
+CAMERA.T: !!opencv-matrix
+   rows: 1
+   cols: 3
+   dt: d
+   data: [-0.10390867013542539,-0.00485845780548322, -0.0002883301653196022]
+
+RIGHT.height: 640
+RIGHT.width: 480
+RIGHT.D: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [0.7977398213517913, 0.9787933032460256,0, 0, 0]
+RIGHT.K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [468.6176295674127, 0., 308.2064104385177, 0.,466.7295729275402,  214.86430740519157, 0., 0., 1. ]
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+#--------------------------------------------------------------------------------------------
+# ORB Extractor: Number of features per image
+ORBextractor.nFeatures: 800
+
+# ORB Extractor: Scale factor between levels in the scale pyramid 	
+ORBextractor.scaleFactor: 1.2
+
+# ORB Extractor: Number of levels in the scale pyramid	
+ORBextractor.nLevels: 8
+
+# ORB Extractor: Fast threshold --- the pixel value difference between the center point with the circle points
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast			
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7 
+LoopClose.nCovisibilityConsistencyTh: 6
+
+#--------------------------------------------------------------------------------------------
+# Track Parameters
+#--------------------------------------------------------------------------------------------
+Track.nMatches: 20
+Track.nThresTrackLocalMap: 30
+Track.SearchWindowSize: 15
+Track.nFeaturesForStereoReinit: 500
+#--------------------------------------------------------------------------------------------
+# Robot Parameters
+#--------------------------------------------------------------------------------------------
+Robot.distCameraFromRobotCenter_x: 0.1162 # distance between camera and robot center in horizonal 
+Robot.distCameraFromRobotCenter_y: 0
+Robot.distCameraFromRobotCenter_z: 0.2355 #dist between cam and robot center in vertiacal 
+
+#--------------------------------------------------------------------------------------------
+# Scale Estimator Parameters
+#--------------------------------------------------------------------------------------------
+ScaleEst.minDistDR: 3.0   #  minimum DR distance for computing scale
+ScaleEst.mMinKFs: 10      #  minimum KFs
+ScaleEst.mScaleDriftThresh: 2.0 # relative scale drift threshold
+ScaleEst.mMinDist: 3.0    # minium DR distacne to check scale drift
+ScaleEst.mDELimit: 1.0    # absolute scale drift threshold
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
+

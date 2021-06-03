@@ -1,0 +1,8 @@
+Thirdparty/
+build*/
+.vscode/
+Vocabulary/ORBvoc.bin
+!Thirdparty/DBoW2/lib/libDBoW2.so
+Examples/ROS/ORB_SLAM2/build
+!Thirdparty/g2o/lib/libg2o.so
+lib/libFisheyeStereoSETF.so

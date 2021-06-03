@@ -1,0 +1,135 @@
+%YAML:1.0
+
+# Modify test.InitVIOTmpPath and bagfile to the correct path
+# Path to save tmp files/results
+test.InitVIOTmpPath: "./tmp_result/mono_VI/"
+
+#--------------------------------------------------------------------------------------------
+# IMU Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+
+imutopic: "/imu0"
+imagetopic: "/cam0/image_raw"
+
+# Timestamp shift. Timage = Timu + image_delay
+Camera.delaytoimu: 0.0138958120439
+
+# acc = acc*9.8, if below is 1
+IMU.multiplyG: 0
+
+# camera-imu frame transformation, Pi = Tic * Pc
+Camera.Tbc:
+ [0.99973899, -0.01359749, -0.01835946,  0.02231003,
+  0.01374816,  0.99987263,  0.00810575, -0.07409418,
+  0.0182469,  -0.00835604,  0.99979859,  0.03603107,
+  0.        ,  0.        ,  0.        ,  1.        ]
+
+# Local Window size
+LocalMapping.LocalWindowSize: 7
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 447.7582658153952 
+Camera.fy: 446.4151712335403
+Camera.cx: 321.12662297011025
+Camera.cy: 249.22259960852648
+
+Camera.k1: 0.7550612060584745
+Camera.k2: 1.0602336829074268
+Camera.p1: 0.0
+Camera.p2: 0.0
+Camera.k3: 0.0
+
+Camera.width: 640
+Camera.height: 480
+
+# Camera frames per second 
+Camera.fps: 25.0
+
+# IR projector baseline times fx (aprox.)
+Camera.bf: 22.96416666665
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+# Close/Far threshold. Baseline times.
+ThDepth: 50.0
+
+# Deptmap values factor
+DepthMapFactor: 3 #5
+
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+#--------------------------------------------------------------------------------------------
+
+# ORB Extractor: Number of features per image
+ORBextractor.nFeatures: 1200
+
+# ORB Extractor: Scale factor between levels in the scale pyramid 
+ORBextractor.scaleFactor: 1.2
+
+# ORB Extractor: Number of levels in the scale pyramid 
+ORBextractor.nLevels: 8
+
+# ORB Extractor: Fast threshold
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast   
+ORBextractor.iniThFAST: 20 #20
+ORBextractor.minThFAST: 7 #7
+
+#--------------------------------------------------------------------------------------------
+# Tracking Parameters
+#--------------------------------------------------------------------------------------------
+Track.nMatches: 20 # threshold for the number of matching features
+Track.SearchWindowSize: 15 # search window size for feature matching. high value means big search window
+Track.nFeaturesForStereoReinit: 500 # min number of features for reinitialization after traking lost
+Track.nThresTrackLocalMap: 30 # treshold for track local map
+
+#--------------------------------------------------------------------------------------------
+# Loop Closing Parameters
+#--------------------------------------------------------------------------------------------
+LoopClose.nCovisibilityConsistencyTh: 3
+
+#--------------------------------------------------------------------------------------------
+# Robot Parameters
+#--------------------------------------------------------------------------------------------
+Robot.distCameraFromRobotCenter: 0.1162 # distance between camera and robot center
+Robot.distbetwheels: 0.289  #0.325
+Robot.distOnePulse: 0.00053428 #0.000032057
+Robot.wheelradius: 0.1    #0.05
+Robot.PulsePerRev: 1862  
+#--------------------------------------------------------------------------------------------
+# Scale Estimator Parameters
+#--------------------------------------------------------------------------------------------
+ScaleEst.minDistDR: 3.0   #  minimum DR distance for computing scale
+ScaleEst.mMinKFs: 10      #  minimum KFs
+ScaleEst.mScaleDriftThresh: 5.0 # relative scale drift threshold
+ScaleEst.mMinDist: 3.0    # minium DR distacne to check scale drift
+ScaleEst.mDELimit: 1.0    # absolute scale drift threshold
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
+Viewer.DRPixelPerMeter: 8 # pixel per meter
+Viewer.PosRGBX: 1100
+Viewer.PosRGBY: 0
+Viewer.PosDepthX: 1100
+Viewer.PosDepthY: 900
+Viewer.PosDRX: 1050
+Viewer.PosDRY: 430
+Viewer.PosMapViewerX: 0
+Viewer.PosMapViewerY: 0

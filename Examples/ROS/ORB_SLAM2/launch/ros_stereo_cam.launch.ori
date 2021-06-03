@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="vocabularty_path" default="/home/shinan/Project/fisheyeORB/Vocabulary/ORBvoc.bin" />
+    <arg name="camera_setting_path" default="/home/shinan/Project/fisheyeORB/Examples/Stereo/210_stereo.yaml" />
+    <arg name="do_rectify" default="false" />
+
+    <arg name="play_bag" value="true"/>
+    <arg name="bag_file" value="/media/shinan/DATA/ROSbag/210_stereo_2020-01-13-11-29-51.bag"/>
+
+    <node name="player" pkg="rosbag" type="play" output="screen" args="--clock $(arg bag_file)" if="$(arg play_bag)"/>
+    <node name="repulisher1" pkg="image_transport" type="republish" args="compressed in:= /cam0/image_raw raw out:=/cam0/image_raw"/>
+    <node name="repulisher2" pkg="image_transport" type="republish" args="compressed in:= /cam1/image_raw raw out:=/cam1/image_raw"/>
+
+    <node name="ORB_SLAM2" pkg="ORB_SLAM2" type="Stereo" output="screen" 
+    	args="$(arg vocabularty_path) $(arg camera_setting_path) $(arg do_rectify)">
+       <remap from="/camera/left/image_raw" to="/cam0/image_raw"/>
+       <remap from="/camera/right/image_raw" to="/cam1/image_raw"/>
+    </node>
+
+</launch>
