@@ -989,14 +989,6 @@ int Frame::Check3Dloc(std::vector<cv::Point3f> left_P3M, int iL,
   tlinr(1) = mtlinr.at<float>(1);
   tlinr(2) = mtlinr.at<float>(2);
 
-  float alpha = mDistCoef.at<float>(0);
-  float beta = mDistCoef.at<float>(1);
-  float mR2range_left = 1.0f / (beta * (2 * alpha - 1));
-
-  float right_alpha = mpCamera2->mvParameters[4];
-  float right_beta = mpCamera2->mvParameters[5];
-  float mR2range_right = 1.0f / (right_beta * (2 * right_alpha - 1));
-
   cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
   cv::Mat P1(3, 4, CV_32F, cv::Scalar(0));
   K.copyTo(P1.rowRange(0, 3).colRange(0, 3));
@@ -1041,15 +1033,8 @@ int Frame::Check3Dloc(std::vector<cv::Point3f> left_P3M, int iL,
 
   float cosParallax = normal1.dot(normal2) / (dist1 * dist2);
 
-  // shinan added:
-  // 如果得到无穷远处的点，则放弃，添加的原因是在Initilize中的checkRT3d()
-  // 中函数中只有当cosParallax<0.99998 才会被当成三角化成功
-  // 如果不添加这一个筛选原则，则容易出现p3dC1为负值， 却通过了验证
   if (cosParallax >= 0.99998) return -1;
-  // Check depth in front of first camera (only if enough parallax, as
-  // "infinite" points can easily go to negative depth)
-  // 如果恢复出的点是无穷远处，则很容易出现负值，这里主要针对非无穷远处的点，如果计算出的深度值小于0，则算为无效
-  //　条件２：在相机1的非归一化相机坐标系下的坐标不能为负
+
   if (p3dC1.at<float>(2) <= 0 && cosParallax < 0.99998) return -1;
   cv::Matx31d p3dC1_mat =
       cv::Matx31d(p3dC1.at<float>(0), p3dC1.at<float>(1), p3dC1.at<float>(2));
@@ -1058,35 +1043,33 @@ int Frame::Check3Dloc(std::vector<cv::Point3f> left_P3M, int iL,
   p3dC2.at<float>(0) = p3dC2_v(0);
   p3dC2.at<float>(1) = p3dC2_v(1);
   p3dC2.at<float>(2) = p3dC2_v(2);
-  // 条件3. 在相机2的非归一化相机坐标系中的坐标不能为负
-  // Check depth in front of second camera (only if enough parallax, as
-  // "infinite" points can easily go to negative depth)
-  if (p3dC2.at<float>(2) <= 0 && cosParallax < 0.99998) return -1;
 
-  // Check reprojection error in first image
-  cv::Point3f im1pt = mpCamera->world2Camera(p3dC1);
-  float distance1R2 = im1pt.x * im1pt.x + im1pt.y * im1pt.y;
-  // mR2range_left:"<<mR2range_left<<std::endl; EUCM model unprojection range,
-  // R2 = Mx^2+My^2其中mx,my 为焦距， sqrt(mx^2+my^2)=228 ,则228为有效半径
-  // 只关注中心部分的点，相当于减少有效半径
-  if (distance1R2 > mR2range_left)  
+  // 条件3. 在相机2的非归一化相机坐标系中的坐标不能为负
+  if (p3dC2.at<float>(2) <= 0 && cosParallax < 0.99998) return -1;
+  
+  // cv::Point2f im1uv = mpCamera->World2Img(p3dC1);
+  cv::Point2f im1uv;
+  int ret1 = mpCamera->world2Img(p3dC1, im1uv);
+  if (ret1 == -1)
     return -1;
 
-  cv::Point2f im1uv = mpCamera->Camera2Img(im1pt);
   float imgx = im1uv.x;
   float imgy = im1uv.y;
-  float squareError1 = (mvKeys[iL].pt.x - imgx) * (mvKeys[iL].pt.x - imgx) + (mvKeys[iL].pt.y - imgy) * (mvKeys[iL].pt.y - imgy);
+  float squareError1 = (mvKeys[iL].pt.x - imgx) * (mvKeys[iL].pt.x - imgx) +
+                       (mvKeys[iL].pt.y - imgy) * (mvKeys[iL].pt.y - imgy);
   float error_sigma = mvLevelSigma2[mvKeys[iL].octave];
   if (squareError1 > 5.991 * error_sigma)
     return -1;
 
   // Check reprojection error in second image
-  cv::Point3f im2pt = mpCamera2->world2Camera(p3dC2);
-  float distance2R2 = im2pt.x * im2pt.x + im2pt.y * im2pt.y;
-  if (distance2R2 > mR2range_right)
+  cv::Point2f img2uv;
+  int ret2 = mpCamera2->world2Img(p3dC2, img2uv);
+  if (ret2 == -1)
     return -1;
-  cv::Point2f img2uv = mpCamera2->Camera2Img(im2pt);
-  float squareError2 = (mvKeysRight[iR].pt.x - img2uv.x) * (mvKeysRight[iR].pt.x - img2uv.x) + (mvKeysRight[iR].pt.y - img2uv.y) * (mvKeysRight[iR].pt.y - img2uv.y);
+  
+  float squareError2 =
+      (mvKeysRight[iR].pt.x - img2uv.x) * (mvKeysRight[iR].pt.x - img2uv.x) +
+      (mvKeysRight[iR].pt.y - img2uv.y) * (mvKeysRight[iR].pt.y - img2uv.y);
   float error_sigma2 = mvLevelSigma2[mvKeysRight[iR].octave];
   if (squareError2 > 5.991 * error_sigma2)
     return -1;

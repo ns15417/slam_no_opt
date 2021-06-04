@@ -26,6 +26,8 @@
 #include <opencv2/features2d/features2d.hpp>
 
 #include "CameraModels/EUCM.h"
+#include "CameraModels/KannalaBrandt8.h"
+
 #include "Converter.h"
 #include "FrameDrawer.h"
 #include "Initializer.h"
@@ -193,7 +195,6 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
       RotationRL.copyTo(mRrl);
       tlinr.copyTo(mtlinr);
     }
-
   }
   else if(sCameraName == "KannalaBrandt8")
   {
@@ -219,7 +220,7 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
     DistCoef.copyTo(mDistCoef);
     std::cout << "[KannalaBrandt8] mDistCoef: " << endl << mDistCoef <<endl;
     vector<float> vCamCalib{fx,fy,cx,cy,k1,k2,k3,k4};
-    mpCamera = new EUCM(vCamCalib);
+    mpCamera = new KannalaBrandt8(vCamCalib);
 
     if (mSensor == System::STEREO) {
       // Init Second Camera
@@ -242,9 +243,8 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
       k4_r = DistCoef_r.at<float>(3);
 
       vector<float> vCamCalib2{fx_r,fy_r,cx_r,cy_r,k1_r,k2_r,k3_r,k4_r};
-      //TODO: need change to KB model
-     // mpCamera2 = new EUCM(vCamCalib2);
-      
+      mpCamera2 = new KannalaBrandt8(vCamCalib2);
+
       std::cout << "[KannalaBrandt8] K_r: " << endl << K_r <<endl;
       std::cout << "[KannalaBrandt8] DistCoef_r: " << endl << DistCoef_r <<endl;
       

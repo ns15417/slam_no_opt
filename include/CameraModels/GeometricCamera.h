@@ -33,8 +33,9 @@ namespace ORB_SLAM2 {
         GeometricCamera() {}
         GeometricCamera(const std::vector<float> &_vParameters) : mvParameters(_vParameters) {}
         ~GeometricCamera() {}
-
-        virtual cv::Point2f world2Camera(const cv::Point3f &p3D) = 0;
+        virtual int world2Img(const cv::Point3f &p3D, cv::Point2f &uv) = 0;
+        virtual int world2Img(const cv::Mat &p3DMat, cv::Point2f &uv) = 0;
+        virtual int world2Camera(const cv::Point3f &p3D, cv::Point2f &campt) = 0;
         virtual cv::Point3f world2Camera(const cv::Mat &p3D) = 0;
         virtual cv::Point2f Camera2Img(cv::Point2f &p2D) = 0;
         virtual cv::Point2f Camera2Img(cv::Point3f &p3D) = 0;
@@ -55,7 +56,7 @@ namespace ORB_SLAM2 {
         // virtual bool ReconstructWithTwoViews(const std::vector<cv::KeyPoint>& vKeys1, const std::vector<cv::KeyPoint>& vKeys2, const std::vector<int> &vMatches12,
         //                                      cv::Mat &R21, cv::Mat &t21, std::vector<cv::Point3f> &vP3D, std::vector<bool> &vbTriangulated) = 0;
 
-        virtual cv::Mat toK() = 0;
+        virtual void toK() = 0;
 
         // virtual bool epipolarConstrain(GeometricCamera* otherCamera, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Mat& R12, const cv::Mat& t12, const float sigmaLevel, const float unc) = 0;
 

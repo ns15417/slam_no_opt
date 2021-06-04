@@ -73,6 +73,7 @@ src/ScaleEstimator.cc
 src/SystemSetting.cc
 src/InitKeyFrame.cc
 src/CameraModels/EUCM.cpp
+src/CameraModels/KannalaBrandt8.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
