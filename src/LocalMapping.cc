@@ -385,27 +385,23 @@ void LocalMapping::CreateNewMapPoints() {
       x3Dc1.at<float>(1) = y1;
       x3Dc1.at<float>(2) = z1;
 
-      if (!bStereo1) {
-        cv::Point3f im1pt = pCamera1->world2Camera(x3Dc1);
-        float im1x = im1pt.x;
-        float im1y = im1pt.y;
-        float im1z = im1pt.z;
-        float distance1R2 = im1x * im1x + im1y * im1y;
+      if (!bStereo1) {//MONO
+        cv::Point2f imguv;
+        int ret = pCamera1->world2Img(x3Dc1,imguv);
 
-        // EUCM model unprojection range, R2 = Mx^2+My^2
-        if (distance1R2 > mR2range) {
+        if (ret == -1) {
           cout << "out of the range" << endl;
           continue;
         }
+        //reprojection error
+        float errX1 = imguv.x - kp1.pt.x;
+        float errY1 = imguv.y - kp1.pt.y;
 
-        float errX1 = im1x - P3M1.x;
-        float errY1 = im1y - P3M1.y;
-        float errZ1 = im1z - P3M1.z;
-
-        if ((errX1 * errX1 + errY1 * errY1 + errZ1 * errZ1) * fx1 * fy1 >
-            5.991 * sigmaSquare1)
+        if ((errX1 * errX1 + errY1 * errY1)> 5.991 * sigmaSquare1)
           continue;
-      } else {
+      } 
+      else 
+      {  // STEREO
         GeometricCamera *pCamera1_r = mpCurrentKeyFrame->mpCamera2;
         float x1_r = mpCurrentKeyFrame->mRrl.row(0).dot(x3Dc1) +
                      mpCurrentKeyFrame->mtlinr.at<float>(0);
@@ -416,24 +412,20 @@ void LocalMapping::CreateNewMapPoints() {
         
         cv::Mat x3Dc1_r(3,1,CV_32F);
         x3Dc1_r.at<float>(0) = x1_r; x3Dc1_r.at<float>(1) = y1_r;  x3Dc1_r.at<float>(2) = z1_r; 
-        cv::Point3f im1pt = pCamera1->world2Camera(x3Dc1);
-        cv::Point3f im1pt_r = pCamera1_r->world2Camera(x3Dc1_r);
-        float im1x = im1pt.x;
-        float im1y = im1pt.y;
-        float distance1R2 = im1x * im1x + im1y * im1y;
-        float im1x_r = im1pt_r.x;
+        cv::Point2f imguv1, imguv2;
+        int ret1 = pCamera1->world2Img(x3Dc1, imguv1);
+        int ret2 = pCamera1_r->world2Img(x3Dc1_r, imguv2);
   
         // EUCM model unprojection range, R2 = Mx^2+My^2
-        if (distance1R2 > mR2range) {
+        if (ret1 == -1 || ret2 == -1) {
           continue;
         }
 
-        float errX1 = im1x - P3M1.x;
-        float errY1 = im1y - P3M1.y;
-        float errX1_r = im1x_r - P3M1_r.x;
+        float errX1 = imguv1.x - kp1.pt.x;
+        float errY1 = imguv1.y - kp1.pt.y;
+        float errX1_r = imguv2.x - kp1_ur;
 
-        if ((errX1 * errX1 + errY1 * errY1 + errX1_r * errX1_r)* fx1 * fy1 >
-            7.8 * sigmaSquare1)
+        if ((errX1 * errX1 + errY1 * errY1 + errX1_r * errX1_r) > 7.8 * sigmaSquare1)
           continue;
       }
 
@@ -446,26 +438,22 @@ void LocalMapping::CreateNewMapPoints() {
       x3Dc2.at<float>(0) = x2;
       x3Dc2.at<float>(1) = y2;
       x3Dc2.at<float>(2) = z2;
-      if (!bStereo2) {
-        cv::Point3f im2pt = pCamera2->world2Camera(x3Dc2);
-        float im2x = im2pt.x;
-        float im2y = im2pt.y;
-        float distance1R2 = im2x * im2x + im2y * im2y;
-
-        // EUCM model unprojection range, R2 = Mx^2+My^2
-        if (distance1R2 > mR2range) {
+      if (!bStereo2) {//MONO
+        cv::Point2f imguv;
+        int ret = pCamera2->world2Img(x3Dc2,imguv);
+        if (ret == -1) {
           cout << "out of the range" << endl;
           continue;
         }
 
-        float errX2 = im2pt.x - P3M2.x;
-        float errY2 = im2pt.y - P3M2.y;
-        float errZ2 = im2pt.z - P3M2.z;
+        float errX2 = imguv.x - kp2.pt.x;
+        float errY2 = imguv.y - kp2.pt.y;
 
-        if ((errX2 * errX2 + errY2 * errY2 + errZ2 * errZ2) * fx1 * fy1 >
-            5.991 * sigmaSquare2)
+        if ((errX2 * errX2 + errY2 * errY2) > 5.991 * sigmaSquare2)
           continue;
-      } else {
+      }
+      else 
+      {//STEREO
         GeometricCamera *pCamera2_r = pKF2->mpCamera2;
         float x2_r = pKF2->mRrl.row(0).dot(x3Dc2) + pKF2->mtlinr.at<float>(0);
         float y2_r = pKF2->mRrl.row(1).dot(x3Dc2) + pKF2->mtlinr.at<float>(1);
@@ -473,23 +461,19 @@ void LocalMapping::CreateNewMapPoints() {
         
         cv::Mat x3Dc2_r(3,1,CV_32F);
         x3Dc2_r.at<float>(0) = x2_r; x3Dc2_r.at<float>(1) = y2_r; x3Dc2_r.at<float>(2) = z2_r;
-        
-        cv::Point3f im2pt = pCamera2->world2Camera(x3Dc2);
-        cv::Point3f im2pt_r = pCamera2_r->world2Camera(x3Dc2_r);
-        float im2x = im2pt.x;
-        float im2y = im2pt.y;
-        float distance2R2 = im2x * im2x + im2y * im2y;
-        float im2x_r = im2pt_r.x;
 
-        if (distance2R2 > mR2range) {
+        cv::Point2f imguv1, imguv2;
+        int right_ret1 = pCamera2->world2Img(x3Dc2,imguv1);
+        int right_ret2 = pCamera2->world2Img(x3Dc2_r, imguv2);
+
+        if (right_ret1 == -1 || right_ret2 == -1) {
           continue;
         }
 
-        float errX2 = im2x - P3M2.x;
-        float errY2 = im2y - P3M2.y;
-        float errX2_r = im2x_r - P3M2_r.x;
-        if ((errX2 * errX2 + errY2 * errY2 + errX2_r * errX2_r) * fx1 * fy1 >
-            7.8 * sigmaSquare2)
+        float errX2 = imguv1.x - kp2.pt.x;
+        float errY2 = imguv1.y - kp2.pt.y;
+        float errX2_r = imguv2.x - kp2_ur;
+        if ((errX2 * errX2 + errY2 * errY2 + errX2_r * errX2_r) > 7.8 * sigmaSquare2)
           continue;
       }
 

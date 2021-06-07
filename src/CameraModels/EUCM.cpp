@@ -13,7 +13,7 @@ namespace ORB_SLAM2 {
 
   campt.x = p3dC1x / (malpha * im1d + (1 - malpha) * p3dC1z);
   campt.y = p3dC1y / (malpha * im1d + (1 - malpha) * p3dC1z);
-
+  // EUCM model unprojection range, R2 = Mx^2+My^2
   float distance2R2 = campt.x * campt.x + campt.y * campt.y;
   if (distance2R2 > mR2range)
     return -1;
