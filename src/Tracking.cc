@@ -196,7 +196,7 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
       tlinr.copyTo(mtlinr);
     }
   }
-  else if(sCameraName == "KannalaBrandt8")
+  else if(sCameraName == "KB")
   {
     fx = fSettings["Camera.fx"];
     fy = fSettings["Camera.fy"];

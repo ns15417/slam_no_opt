@@ -97,7 +97,7 @@ cv::Point2f EUCM::Camera2Img(cv::Point3f &p3D){
 }
 /**
  * @brief 像素平面
- * 
+ *
  * @param uv 
  * @return cv::Point3f 
  */

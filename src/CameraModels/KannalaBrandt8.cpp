@@ -33,6 +33,8 @@ int KannalaBrandt8::world2Img(const cv::Point3f &p3D, cv::Point2f &uv){
 
   uv.x = res[0];
   uv.y = res[1];
+
+  return 0;
 }
 
 // world2Camera
