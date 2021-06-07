@@ -36,7 +36,7 @@
 #include "Optimizer.h"
 #include "PnPsolver.h"
 #define VISUAL
-
+#define NOSCALE
 using namespace std;
 
 namespace ORB_SLAM2 {
