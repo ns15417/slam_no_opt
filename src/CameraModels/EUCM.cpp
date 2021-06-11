@@ -55,6 +55,29 @@ int EUCM::world2Img(const cv::Point3f &p3D, cv::Point2f &uv)
   return 0;
 }
 
+int EUCM::world2Img(const Eigen::Vector3d &v3D, Eigen::Vector2d &vImguv) {
+  float im1d = sqrt(mbeta * (v3D[0] * v3D[0] + v3D[1] * v3D[1]) + v3D[2] * v3D[2]);
+  cv::Point2f campt;
+
+  campt.x = v3D[0] / (malpha * im1d + (1 - malpha) * v3D[2]);
+  campt.y = v3D[1] / (malpha * im1d + (1 - malpha) * v3D[2]);
+
+  float distance2R2 = campt.x * campt.x + campt.y * campt.y;
+
+  if (distance2R2 > mR2range) return -1;
+
+  cv::Mat ptincam = cv::Mat::ones(3, 1, CV_32F);
+  ptincam.at<float>(0) = campt.x;
+  ptincam.at<float>(1) = campt.y;
+  cv::Mat ptinImg = cv::Mat::ones(3, 1, CV_32F);
+  ptinImg = mCameraK * ptincam;
+
+  vImguv[0] = ptinImg.at<float>(0);
+  vImguv[1] = ptinImg.at<float>(1);
+
+  return 0;
+}
+
 cv::Point3f EUCM::world2Camera(const cv::Mat &p3D) {
   float p3dC1x = p3D.at<float>(0);
   float p3dC1y = p3D.at<float>(1);
@@ -107,8 +130,8 @@ cv::Point3f EUCM::Img2Camera(cv::Point2f &uv){
     float fy = mvParameters[1];
     float cx = mvParameters[2];
     float cy = mvParameters[3];
-    float alpha = mvParameters[4];
-    float beta = mvParameters[5];
+    float malpha = mvParameters[4];
+    float mbeta = mvParameters[5];
 
     float invfx = 1./fx;
     float invfy = 1./fy;
@@ -116,10 +139,10 @@ cv::Point3f EUCM::Img2Camera(cv::Point2f &uv){
     campt.y = (uv.y - cy) * invfy;
     float distanceR2 = campt.x * campt.x + campt.y * campt.y;
     campt.z =
-        (1 - beta * alpha * alpha * distanceR2) /
-        (alpha * sqrt(1 - (2 * alpha - 1) * beta * distanceR2) + 1 - alpha);
+        (1 - mbeta * malpha * malpha * distanceR2) /
+        (malpha * sqrt(1 - (2 * malpha - 1) * mbeta * distanceR2) + 1 - malpha);
     if (isnan(campt.z))
-      campt.z = (1 - beta * alpha * alpha * distanceR2) / (1 - alpha);
+      campt.z = (1 - mbeta * malpha * malpha * distanceR2) / (1 - malpha);
     return campt;
 }
 
@@ -130,6 +153,90 @@ void EUCM::toK() {
                0.f, mvParameters[1], mvParameters[3], 0.f, 0.f, 1.f);
 
   mR2range = 1.0f / (mbeta * (2 * malpha - 1));
+}
+
+//返回雅克比矩阵 alpha_e/alpha_p
+cv::Mat EUCM:: projectJac(const cv::Point3f &p3D) {
+  double x = p3D.x;
+  double y = p3D.y;
+  double z = p3D.z;
+  double x_2 = x * x;
+  double y_2 = y * y;
+  double z_2 = z * z;
+
+  double rho = sqrt(mbeta * (x_2 + y_2) + z_2);
+  double eta = (1 - malpha) * z + malpha * rho;
+  double eta_2 = eta * eta;
+
+  float fx = mvParameters[0];
+  float fy = mvParameters[1];
+  cv::Mat Jac(2, 3, CV_32F);
+  Jac.at<float>(0, 0) =
+      fx * (-1 / eta + (malpha * mbeta * x_2) / (eta_2 * rho));
+  Jac.at<float>(0, 1) = fx * (malpha * mbeta * x * y) / (eta_2 * rho);
+  Jac.at<float>(0, 2) = fx * x * (1 - malpha + (malpha * z) / rho) / eta_2;
+  Jac.at<float>(1, 0) = fy * (malpha * mbeta * x * y) / (eta_2 * rho);
+  Jac.at<float>(1, 1) =
+      fy * (-1 / eta + (malpha * mbeta * y_2) / (eta_2 * rho));
+  Jac.at<float>(1, 2) = fy * y * (1 - malpha + (malpha * z) / rho) / eta_2;
+
+  return Jac;
+}
+
+Eigen::Matrix<double, 2, 3> EUCM::projectJac(const Eigen::Vector3d &v3D) {
+  double x = v3D[0];
+  double y = v3D[1];
+  double z = v3D[2];
+  double x_2 = x * x;
+  double y_2 = y * y;
+  double z_2 = z * z;
+
+  double rho = sqrt(mbeta * (x_2 + y_2) + z_2);
+  double eta = (1 - malpha) * z + malpha * rho;
+  double eta_2 = eta * eta;
+
+  float fx = mvParameters[0];
+  float fy = mvParameters[1];
+
+  Eigen::Matrix<double, 2, 3> JacGood;
+  JacGood(0, 0) = fx * (-1 / eta + (malpha * mbeta * x_2) / (eta_2 * rho));
+  JacGood(0, 1) = fx * (malpha * mbeta * x * y) / (eta_2 * rho);
+  JacGood(0, 2) = fx * x * (1 - malpha + (malpha * z) / rho) / eta_2;
+  JacGood(1, 0) = fy * (malpha * mbeta * x * y) / (eta_2 * rho);
+  JacGood(1, 1) = fy * (-1 / eta + (malpha * mbeta * y_2) / (eta_2 * rho));
+  JacGood(1, 2) = fy * y * (1 - malpha + (malpha * z) / rho) / eta_2;
+
+  return JacGood;
+}
+
+cv::Vec2d EUCM::ComputeError(cv::Point3f &p3P){
+  cv::Point2f obs;
+  world2Img(p3P,obs);
+  mError[0] = obs.x - mMeasurement[0];
+  mError[1] = obs.y - mMeasurement[1];
+
+  return mError;
+}
+
+cv::Vec2d EUCM::ComputeError(cv::Mat &P3D_Mat){
+  cv::Point3f pos;
+  pos.x = P3D_Mat.at<float>(0);
+  pos.y = P3D_Mat.at<float>(1);
+  pos.z = P3D_Mat.at<float>(2);
+
+  cv::Vec2d error = ComputeError(pos);
+  return error;
+}
+
+void EUCM::SetMeasurement(cv::Point2f &kp_xy){
+  mMeasurement[0] = kp_xy.x;
+  mMeasurement[1] = kp_xy.y;
+}
+
+float EUCM::chi2(const float sigma){
+  cv::Vec2d b = sigma*mError;
+
+  return mError.dot(b);
 }
 
 }  // namespace ORB_SLAM2
