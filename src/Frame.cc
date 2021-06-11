@@ -108,7 +108,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
 {
   // Frame ID
   mnId = nNextId++;
-
+  
   // Scale Level Info
   mnScaleLevels = mpORBextractorLeft->GetLevels();
   mfScaleFactor = mpORBextractorLeft->GetScaleFactor();
@@ -118,6 +118,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
   mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
   mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
+  mTrl = cv::Mat(3,4,CV_32F);
+  mRrl.copyTo(mTrl.colRange(0,3).rowRange(0,3));
+  mtlinr.copyTo(mTrl.col(3));
   // ORB extraction
   thread threadLeft(&Frame::ExtractORB, this, 0, imLeft);
   thread threadRight(&Frame::ExtractORB, this, 1, imRight);

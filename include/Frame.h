@@ -155,6 +155,7 @@ public:
     GeometricCamera* mpCamera, *mpCamera2;
     cv::Mat mRrl;
     cv::Mat mtlinr;
+    cv::Mat mTrl;
 
     // Stereo baseline multiplied by fx.
     float mbf;
