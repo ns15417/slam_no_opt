@@ -32,6 +32,8 @@
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 #include "Thirdparty/g2o/g2o/types/types_six_dof_expmap.h"
 
+#include "OptimizableTypes.h"
+
 extern bool g_pause;
 
 namespace ORB_SLAM2 {
@@ -313,6 +315,88 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame*>& vpKFs,
   }
 }
 
+/**
+ * @brief 当前帧的位姿不变,只是统计outliner的数量
+ * 
+ */
+int Optimizer::PoseOutliner(Frame* pFrame){
+  cv::Mat Rrl = pFrame->mRrl;
+  cv::Mat tlinr = pFrame->mtlinr;
+
+  int nInitialCorrespondences = 0;
+
+  // Set MapPoint vertices
+  const int N = pFrame->N;
+  const float deltaMono = sqrt(5.991);
+  const float chi2Mono =  5.991;
+
+  int nBad = 0;
+
+  {
+    unique_lock<mutex> lock(MapPoint::mGlobalMutex);
+
+    for (int i = 0; i < N; i++) {
+      MapPoint* pMP = pFrame->mvpMapPoints[i];
+      cv::KeyPoint kpUn;
+      if (pMP) {
+          cv::Mat P3D = pMP->GetWorldPos();
+        // Monocular observation
+        if (pFrame->mvuRight[i] < 0) {
+          kpUn = pFrame->mvKeysUn[i];
+          Eigen::Matrix<double, 2, 1> obs;
+          obs << kpUn.pt.x, kpUn.pt.y;
+          ORB_SLAM2::EdgeSE3ProjectXYZOnlyPose *e = new ORB_SLAM2::EdgeSE3ProjectXYZOnlyPose();
+          e->setMeasurement(obs);
+          const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
+          e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
+          e->computeError();
+          const float left_chi = e->chi2();
+
+          if (left_chi > chi2Mono) {
+            pFrame->mvbOutlier[i] = true;
+            nBad++;
+          } else {
+            pFrame->mvbOutlier[i] = false;
+          }
+        } else  // Stereo observation
+        {
+          nInitialCorrespondences++;
+          pFrame->mvbOutlier[i] = false;
+          //暂定测量值是点在右目中的像素坐标
+          kpUn = pFrame->mvKeysRight[i];
+
+          Eigen::Matrix<double, 2, 1> obs;
+          obs << kpUn.pt.x, kpUn.pt.y;
+          pFrame->mvbOutlier[i] = false;
+          ORB_SLAM2::EdgeSE3ProjectXYZOnlyPoseToBody *e = new ORB_SLAM2::EdgeSE3ProjectXYZOnlyPoseToBody();
+
+          e->setMeasurement(obs);
+          const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
+          e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
+          e->pCamera = pFrame->mpCamera2;
+          cv::Mat Xw = pMP->GetWorldPos();//在世界坐标系中的坐标
+          e->Xw[0] = Xw.at<float>(0);
+          e->Xw[1] = Xw.at<float>(1);
+          e->Xw[2] = Xw.at<float>(2);
+          
+          e->mTrl = Converter::toSE3Quat(pFrame->mTrl);
+          e->computeError();
+          
+          const float chi2 = e->chi2();
+          if(chi2 > chi2Mono){
+            pFrame->mvbOutlier[i]=true;
+            nBad++;
+          }else
+          {
+            pFrame->mvbOutlier[i]=false;
+          }
+        }
+      }// end of current point
+    }// end of the for loop
+  }
+  return nInitialCorrespondences - nBad;
+}
+
 int Optimizer::PoseOptimization(Frame* pFrame) {
   cv::Mat Rrl = pFrame->mRrl;
   cv::Mat tlinr = pFrame->mtlinr;
@@ -474,7 +558,7 @@ int Optimizer::PoseOptimization(Frame* pFrame) {
   int nBad = 0;
   for (size_t it = 0; it < 4; it++) {
     vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
-    optimizer.initializeOptimization(0);
+    optimizer.initializeOptimization(0);//0表示edge level, 只有non-outliner,上一轮优化的的setLevel(0)才会被放入到优化中
     optimizer.optimize(its[it]);
 
     nBad = 0;
