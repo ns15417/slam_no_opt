@@ -6,3 +6,6 @@ Vocabulary/ORBvoc.bin
 Examples/ROS/ORB_SLAM2/build
 !Thirdparty/g2o/lib/libg2o.so
 lib/libFisheyeStereoSETF.so
+Examples/ROS/ORB_SLAM2/launch/rostopic_stereo_tf.launch
+Examples/ROS/ORB_SLAM2/config/stereo_robot.yaml
+Examples/ROS/ORB_SLAM2/config/stereo_robot_KB.yaml
