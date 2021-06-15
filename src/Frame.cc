@@ -120,7 +120,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
 
   mTrl = cv::Mat(3,4,CV_32F);
   mRrl.copyTo(mTrl.colRange(0,3).rowRange(0,3));
-  mtlinr.copyTo(mTrl.col(3));
+  cv::Mat tlint_t = mtlinr.t();
+  tlint_t.copyTo(mTrl.col(3));
+  std::cout << "Frame: mTrl = " << mTrl << std::endl;
   // ORB extraction
   thread threadLeft(&Frame::ExtractORB, this, 0, imLeft);
   thread threadRight(&Frame::ExtractORB, this, 1, imRight);
