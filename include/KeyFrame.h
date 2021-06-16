@@ -180,6 +180,8 @@ public:
     int N;   
     cv::Mat mRrl;
     cv::Mat mtlinr = cv::Mat(3,1,CV_32F);
+    cv::Mat mTrl;
+     //TODO: 是否应该将右目的特征点也保存起来, mvKeysRight, 这样可以用于判断重投影误差时候的sigma
     // KeyPoints, stereo coordinate and descriptors (all associated by an index)
     const std::vector<cv::KeyPoint> mvKeys;
     const std::vector<cv::KeyPoint> mvKeysUn;

@@ -58,6 +58,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB, int sensor_type
       N(F.N),
       mRrl(F.mRrl),
       mtlinr(F.mtlinr),
+      mTrl(F.mTrl),
       mvKeys(F.mvKeys),
       mvKeysUn(F.mvKeysUn),
       mvuRight(F.mvuRight),
@@ -116,7 +117,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB, int sensor_type
   mbScaled = false;
   mDistScale = 1.0;
 }
-
+//TODO: 可能initKF也需要添加mRrl, tlinr, mTrl;
 KeyFrame::KeyFrame(InitKeyFrame &initkf, Map *pMap, KeyFrameDatabase *pKFDB,
                    vector<MapPoint *> &vpMapPoints)
     : mnFrameId(initkf.mnFrameId),
