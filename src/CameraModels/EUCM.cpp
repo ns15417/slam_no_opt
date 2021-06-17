@@ -156,7 +156,7 @@ void EUCM::toK() {
 }
 
 //返回雅克比矩阵 alpha_e/alpha_p
-cv::Mat EUCM:: projectJac(const cv::Point3f &p3D) {
+cv::Mat EUCM::projectJac(const cv::Point3f &p3D) {
   double x = p3D.x;
   double y = p3D.y;
   double z = p3D.z;
@@ -171,16 +171,14 @@ cv::Mat EUCM:: projectJac(const cv::Point3f &p3D) {
   float fx = mvParameters[0];
   float fy = mvParameters[1];
   cv::Mat Jac(2, 3, CV_32F);
-  Jac.at<float>(0, 0) =
-      fx * (-1 / eta + (malpha * mbeta * x_2) / (eta_2 * rho));
+  Jac.at<float>(0, 0) = fx * (-1 / eta + (malpha * mbeta * x_2) / (eta_2 * rho));
   Jac.at<float>(0, 1) = fx * (malpha * mbeta * x * y) / (eta_2 * rho);
   Jac.at<float>(0, 2) = fx * x * (1 - malpha + (malpha * z) / rho) / eta_2;
   Jac.at<float>(1, 0) = fy * (malpha * mbeta * x * y) / (eta_2 * rho);
-  Jac.at<float>(1, 1) =
-      fy * (-1 / eta + (malpha * mbeta * y_2) / (eta_2 * rho));
+  Jac.at<float>(1, 1) = fy * (-1 / eta + (malpha * mbeta * y_2) / (eta_2 * rho));
   Jac.at<float>(1, 2) = fy * y * (1 - malpha + (malpha * z) / rho) / eta_2;
 
-  return Jac;
+  return -Jac.clone();
 }
 
 Eigen::Matrix<double, 2, 3> EUCM::projectJac(const Eigen::Vector3d &v3D) {
@@ -206,7 +204,7 @@ Eigen::Matrix<double, 2, 3> EUCM::projectJac(const Eigen::Vector3d &v3D) {
   JacGood(1, 1) = fy * (-1 / eta + (malpha * mbeta * y_2) / (eta_2 * rho));
   JacGood(1, 2) = fy * y * (1 - malpha + (malpha * z) / rho) / eta_2;
 
-  return JacGood;
+  return -JacGood;
 }
 
 cv::Vec2d EUCM::ComputeError(cv::Point3f &p3P){
