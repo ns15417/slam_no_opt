@@ -52,7 +52,7 @@ public:
     Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
           const double &timeStamp, ORBextractor *extractorLeft,
           ORBextractor *extractorRight, ORBVocabulary *voc, cv::Mat &K,
-          cv::Mat &distCoef, cv::Mat &Rrl, cv::Mat &trinl, const float &bf, const float &thDepth,
+          cv::Mat &distCoef, cv::Mat &Rrl, cv::Mat &tlinr, const float &bf, const float &thDepth,
           GeometricCamera *pCamera, GeometricCamera *pCamera2,
           float dr_x, float dr_y, bool odom_flag,
           int sensor_type, cv::Mat Tbc);
@@ -101,6 +101,7 @@ public:
     // and fill variables of the MapPoint to be used by the tracking
     bool isInFrustum(MapPoint* pMP, float viewingCosLimit);
     bool isInFrustumFisheye(MapPoint* pMP, float viewingCosLimit);
+    bool isInFrustumFisheyeChecks(MapPoint *pMP, float viewingCosLimit, bool bRight);
 
     // Compute the cell of a keypoint (return false if outside the grid)
     bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
@@ -156,6 +157,7 @@ public:
     cv::Mat mRrl;
     cv::Mat mtlinr;
     cv::Mat mTrl;
+    cv::Mat mTlr;
 
     // Stereo baseline multiplied by fx.
     float mbf;

@@ -86,7 +86,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
              const double &timeStamp, ORBextractor *extractorLeft,
              ORBextractor *extractorRight, ORBVocabulary *voc, cv::Mat &K,
              cv::Mat &distCoef, cv::Mat &Rrl,
-             cv::Mat &trinl, const float &bf, const float &thDepth,
+             cv::Mat &tlinr, const float &bf, const float &thDepth,
              GeometricCamera *pCamera, GeometricCamera *pCamera2,
              float dr_x, float dr_y, bool odom_flag,
              int sensor_type, cv::Mat Tbc)
@@ -97,7 +97,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
       mK(K.clone()),
       mDistCoef(distCoef.clone()),
       mRrl(Rrl.clone()),
-      mtlinr(trinl.clone()),
+      mtlinr(tlinr.clone()),
       mbf(bf),
       mThDepth(thDepth),
       mpReferenceKF(static_cast<KeyFrame *>(NULL)),
@@ -119,9 +119,14 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight,
   mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
   mTrl = cv::Mat(3,4,CV_32F);
-
   mRrl.copyTo(mTrl.colRange(0,3).rowRange(0,3));
   mtlinr.copyTo(mTrl.col(3));
+
+  mTlr = cv::Mat(3,4,CV_32F);
+  cv::Mat Rlr = mRrl.t();
+  cv::Mat trinl = -Rlr*mtlinr;
+  Rlr.copyTo(mTlr.colRange(0,3).rowRange(0,3));
+  trinl.copyTo(mTlr.col(3).rowRange(0,3));
   // ORB extraction
   thread threadLeft(&Frame::ExtractORB, this, 0, imLeft);
   thread threadRight(&Frame::ExtractORB, this, 1, imRight);
@@ -440,64 +445,125 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit) {
 }
 
 bool Frame::isInFrustumFisheye(MapPoint *pMP, float viewingCosLimit) {
-  pMP->mbTrackInView = false;
+  if (mSensor == 0) {
+    pMP->mbTrackInView = false;
+    cv::Mat P = pMP->GetWorldPos();
 
-  // 3D in absolute coordinates
-  cv::Mat P = pMP->GetWorldPos();
+    const cv::Mat Pc = mRcw * P + mtcw;
+    const float &PcZ = Pc.at<float>(2);
+    const float invz = 1.0f / PcZ;
+    if (PcZ < 0.0f) return false;
+    cv::Point2f uv;
+    mpCamera->world2Img(Pc, uv);
+    if (uv.x < mnMinX || uv.x > mnMaxX) return false;
+    if (uv.y < mnMinY || uv.y > mnMaxY) return false;
+    const float maxDistance = pMP->GetMaxDistanceInvariance();
+    const float minDistance = pMP->GetMinDistanceInvariance();
+    const cv::Mat PO = P - mOw;
+    const float dist = cv::norm(PO);
 
-  // 3D in camera coordinates
-  const cv::Mat Pc = mRcw * P + mtcw;
-  const float &PcX = Pc.at<float>(0);
-  const float &PcY = Pc.at<float>(1);
-  const float &PcZ = Pc.at<float>(2);
+    if (dist < minDistance || dist > maxDistance) return false;
 
-  // Project in image and check it is not outside
-  const float alpha = mDistCoef.at<float>(0);
-  const float beta = mDistCoef.at<float>(1);
-  const float imd = sqrt(beta * (PcX * PcX + PcY * PcY) + PcZ * PcZ);
+    cv::Mat Pn = pMP->GetNormal();
 
-  const float mx = PcX / (alpha * imd + (1 - alpha) * PcZ);
-  const float my = PcY / (alpha * imd + (1 - alpha) * PcZ);
+    const float viewCos = PO.dot(Pn) / dist;
 
-  const float mR2 = mx * mx + my * my;
-  const float mR2range = 1.0f / (beta * (2 * alpha - 1));
+    const int nPredictedLevel = pMP->PredictScale(dist, this);
 
-  if (mR2 > mR2range) return false;
+    // Data used by the tracking
+    pMP->mbTrackInView = true;
+    pMP->mTrackProjX = uv.x;
+    pMP->mTrackProjY = uv.y;
+    pMP->mnTrackScaleLevel = nPredictedLevel;
+    pMP->mTrackViewCos = viewCos;
 
-  const float u = fx * mx + cx;
-  const float v = fy * my + cy;
+    return true;
+  }else{
+    pMP->mbTrackInView = false;
+    pMP->mbTrackInViewR = false;
+    pMP->mnTrackScaleLevel = -1;
+    // pMP -> mnTrackScaleLevelR = -1;
+    pMP->mbTrackInView = isInFrustumFisheyeChecks(pMP,viewingCosLimit,false);
+    pMP->mbTrackInViewR = isInFrustumFisheyeChecks(pMP,viewingCosLimit,true);
 
-  if (u < mnMinX || u > mnMaxX) return false;
-  if (v < mnMinY || v > mnMaxY) return false;
+    return pMP->mbTrackInView || pMP->mbTrackInViewR; 
+  }
+}
 
-  // Check distance is in the scale invariance region of the MapPoint
-  const float maxDistance = pMP->GetMaxDistanceInvariance();
-  const float minDistance = pMP->GetMinDistanceInvariance();
-  const cv::Mat PO = P - mOw;
-  const float dist = cv::norm(PO);
+bool Frame::isInFrustumFisheyeChecks(MapPoint *pMP, float viewingCosLimit, bool bRight)
+{
+    // 3D in absolute coordinates
+    cv::Mat P = pMP->GetWorldPos();
 
-  if (dist < minDistance || dist > maxDistance) return false;
+    cv::Mat mR, mt, twc;
+    if(bRight){
+        cv::Mat Rrl = mTrl.colRange(0,3).rowRange(0,3);
+        cv::Mat trl = mTrl.col(3);
+        mR = Rrl * mRcw;
+        mt = Rrl * mtcw + trl;
+        twc = mRwc * mTlr.rowRange(0,3).col(3) + mOw;
+    }
+    else{
+        mR = mRcw;
+        mt = mtcw;
+        twc = mOw;
+    }
 
-  // Check viewing angle
-  cv::Mat Pn = pMP->GetNormal();
+    // 3D in camera coordinates
+    cv::Mat Pc = mR*P+mt;
+    const float Pc_dist = cv::norm(Pc);
+    const float &PcZ = Pc.at<float>(2);
 
-  const float viewCos = PO.dot(Pn) / dist;
+    // Check positive depth
+    if(PcZ<0.0f)
+        return false;
 
-  // if(viewCos<viewingCosLimit)
-  //    return false;
+    // Project in image and check it is not outside
+    cv::Point2f uv;
+    if(bRight) mpCamera2->world2Img(Pc, uv);
+    else mpCamera->world2Img(Pc,uv);
 
-  // Predict scale in the image
-  const int nPredictedLevel = pMP->PredictScale(dist, this);
+    if(uv.x<mnMinX || uv.x>mnMaxX)
+        return false;
+    if(uv.y<mnMinY || uv.y>mnMaxY)
+        return false;
 
-  // Data used by the tracking
-  pMP->mbTrackInView = true;
-  pMP->mTrackProjX = u;
-  // pMP->mTrackProjXR = u - mbf*invz;
-  pMP->mTrackProjY = v;
-  pMP->mnTrackScaleLevel = nPredictedLevel;
-  pMP->mTrackViewCos = viewCos;
+    // Check distance is in the scale invariance region of the MapPoint
+    const float maxDistance = pMP->GetMaxDistanceInvariance();
+    const float minDistance = pMP->GetMinDistanceInvariance();
+    const cv::Mat PO = P-twc;
+    const float dist = cv::norm(PO);
 
-  return true;
+    if(dist<minDistance || dist>maxDistance)
+        return false;
+
+    // Check viewing angle
+    cv::Mat Pn = pMP->GetNormal();
+
+    const float viewCos = PO.dot(Pn)/dist;
+
+    if(viewCos<viewingCosLimit)
+        return false;
+
+    // Predict scale in the image
+    const int nPredictedLevel = pMP->PredictScale(dist,this);
+
+    if(bRight){
+        pMP->mTrackProjXR = uv.x;
+        pMP->mTrackProjYR = uv.y;
+        pMP->mnTrackScaleLevelR= nPredictedLevel;
+        pMP->mTrackViewCosR = viewCos;
+        //pMP->mTrackDepthR = Pc_dist;
+    }
+    else{
+        pMP->mTrackProjX = uv.x;
+        pMP->mTrackProjY = uv.y;
+        pMP->mnTrackScaleLevel= nPredictedLevel;
+        pMP->mTrackViewCos = viewCos;
+        //pMP->mTrackDepth = Pc_dist;
+    }
+
+    return true;
 }
 
 vector<size_t> Frame::GetFeaturesInArea(const float &x, const float &y,
