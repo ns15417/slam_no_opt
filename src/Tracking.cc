@@ -210,8 +210,8 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
     std::cout << "[KannalaBrandt8] K: " << endl << K <<endl;
     k1 = fSettings["Camera.k1"];
     k2 = fSettings["Camera.k2"];
-    k3 = fSettings["Camera.k3"];
-    k4 = fSettings["Camera.k4"];
+    k3 = fSettings["Camera.p1"];
+    k4 = fSettings["Camera.p2"];
     DistCoef.at<float>(0) = k1;
     DistCoef.at<float>(1) = k2;
     DistCoef.at<float>(2) = k3;
@@ -1589,7 +1589,6 @@ void Tracking::CheckReplacedInLastFrame() {
 }
 
 bool Tracking::TrackReferenceKeyFrame() {
-
   // cout << "[Tracking] Track reference frame  with refkf id " << mpReferenceKF->mnId << endl;
   // Compute Bag of Words vector
   mCurrentFrame.ComputeBoW();
@@ -1900,6 +1899,7 @@ bool Tracking::TrackWithMotionModel() {
   if(mCurrentFrame.mOdomFlag && mLastFrame.mOdomFlag){
     mVelocity = CalculateVelocity();
   }
+
   mCurrentFrame.SetPose(mVelocity * mLastFrame.mTcw);
 
   fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(),
@@ -1984,7 +1984,7 @@ bool Tracking::TrackLocalMap() {
         mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
     }
   }
-  
+
   // Decide if the tracking was succesful
   // More restrictive if there was a relocalization recently
   if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames &&
@@ -2280,7 +2280,7 @@ void Tracking::SearchLocalPoints() {
   }
 
   int nToMatch = 0;
-
+  // 验证其他的localPoints能不能在地图中被看到
   // Project points in frame and check its visibility
   for (vector<MapPoint*>::iterator vit = mvpLocalMapPoints.begin(),
                                    vend = mvpLocalMapPoints.end();
@@ -2918,5 +2918,6 @@ bool Tracking::ReTrackWithMotionModel(cv::Mat &DR_pose)
         mbVO = nmatchesMap<10;
         return nmatches>mnMatches; // default: 20;
     }
+      return nmatches >= mnMatches;  // default: 20; // DR!!! before: 10
 }
 }  // namespace ORB_SLAM2
