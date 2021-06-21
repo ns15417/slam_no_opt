@@ -98,9 +98,13 @@ public:
     float mTrackProjX;
     float mTrackProjY;
     float mTrackProjXR;
+    float mTrackProjYR;
     bool mbTrackInView;
+    bool mbTrackInViewR;
     int mnTrackScaleLevel;
+    int mnTrackScaleLevelR;
     float mTrackViewCos;
+    float mTrackViewCosR;
     long unsigned int mnTrackReferenceForFrame;
     long unsigned int mnLastFrameSeen;
 
