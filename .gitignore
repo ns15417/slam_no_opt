@@ -9,3 +9,4 @@ lib/libFisheyeStereoSETF.so
 Examples/ROS/ORB_SLAM2/launch/rostopic_stereo_tf.launch
 Examples/ROS/ORB_SLAM2/config/stereo_robot.yaml
 Examples/ROS/ORB_SLAM2/config/stereo_robot_KB.yaml
+Examples/ROS/ORB_SLAM2/rostopic_stereo_tf
