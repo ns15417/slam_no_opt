@@ -82,17 +82,9 @@ PnPsolver::PnPsolver(const Frame &F,
   mvP3Dw.reserve(F.mvpMapPoints.size());
   mvKeyPointIndices.reserve(F.mvpMapPoints.size());
   mvAllIndices.reserve(F.mvpMapPoints.size());
-
-  alpha = F.mDistCoef.at<float>(0);
-  beta = F.mDistCoef.at<float>(1);
-
-  // max of FoV is 150 degrees, so we can find the solution of the equation
-  // const float coefA = 3*alpha*alpha*beta+2*alpha-1; //120 degrees coefiicient
-  // of equation
-  const float coefA = 13.928 * alpha * alpha * beta + 2 * alpha -
-                      1;  // 150 degrees coefiicient of equation
-  const float coefB = 2 - 2 * alpha;
-  const float coefC = -1;
+  
+  mpCamera = F.mpCamera;
+  mpCamera2 = F.mpCamera2;
 
   const float mzMin = 0.1;
   cout << "mzMin: " << mzMin << endl;
@@ -126,10 +118,10 @@ PnPsolver::PnPsolver(const Frame &F,
   }
 
   // Set camera calibration parameters
-  fu = F.fx;
-  fv = F.fy;
-  uc = F.cx;
-  vc = F.cy;
+  fu = F.mpCamera->mvParameters[0];
+  fv = F.mpCamera->mvParameters[1];
+  uc = F.mpCamera->mvParameters[2];
+  vc = F.mpCamera->mvParameters[3];
 
   SetRansacParameters();
 }
@@ -327,7 +319,8 @@ void PnPsolver::CheckInliers() {
         (mRi[2][0] * P3Dw.x + mRi[2][1] * P3Dw.y + mRi[2][2] * P3Dw.z + mti[2]);
     float invZc = 1 / Zc;
     cv::Point3f P3Dc(Xc, Yc, Zc);
-    cv::Point2f uv = project(P3Dc);
+    cv::Point2f uv;
+    mpCamera->world2Img(P3Dc, uv);
     double ue = uv.x;
     double ve = uv.y;
     
@@ -538,9 +531,14 @@ double PnPsolver::reprojection_error(const double R[3][3], const double t[3]) {
     double *pw = pws + 3 * i;
     double Xc = dot(R[0], pw) + t[0];
     double Yc = dot(R[1], pw) + t[1];
-    double inv_Zc = 1.0 / (dot(R[2], pw) + t[2]);
-    double ue = uc + fu * Xc * inv_Zc;
-    double ve = vc + fv * Yc * inv_Zc;
+    double Zc = dot(R[2], pw) + t[2];
+    cv::Point3f P3Dc;
+    P3Dc.x = Xc; P3Dc.y = Yc; P3Dc.z = Zc;
+    cv::Point2f uv;
+    mpCamera->world2Img(P3Dc, uv);
+
+    double ue = uv.x;
+    double ve = uv.y;
     double u = us[2 * i], v = us[2 * i + 1];
 
     sum2 += sqrt((u - ue) * (u - ue) + (v - ve) * (v - ve));
@@ -981,22 +979,4 @@ void PnPsolver::mat_to_quat(const double R[3][3], double q[4]) {
   q[2] *= scale;
   q[3] *= scale;
 }
-
-cv::Point2f PnPsolver::project(cv::Point3f &P3D)
-{
-  float temp = P3D.x * P3D.x + P3D.y * P3D.y;
-  float rho = sqrt(beta * temp + P3D.z * P3D.z);
-  float imp = alpha * rho + (1.0 - alpha) * P3D.z;
-  float mx = P3D.x / imp;
-  float my = P3D.y / imp;
-
-  float ux = fu * mx + uc;
-  float uy = fv * my + vc;
-  
-  cv::Point2f img_pt;
-  img_pt.x = ux;
-  img_pt.y = uy;
-  return img_pt;
-}
-
 }  // namespace ORB_SLAM2

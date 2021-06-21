@@ -124,9 +124,8 @@ class PnPsolver {
 
   void mat_to_quat(const double R[3][3], double q[4]);
 
-  cv::Point2f project(cv::Point3f &P3D);
-  double uc, vc, fu, fv;
-  float alpha, beta;
+  GeometricCamera* mpCamera, *mpCamera2;
+  float fu,fv,uc,vc;
   
   double * pws, * us, * alphas, * pcs;
   int maximum_number_of_correspondences;
