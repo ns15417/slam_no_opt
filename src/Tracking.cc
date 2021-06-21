@@ -127,6 +127,7 @@ Tracking::Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer,
   numofRelocFrame=0;
   mbWithMap = false;
   OdomExist = false;
+  std::cout << "----------------FInished------" << std::endl;
 }
 
 bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
@@ -314,6 +315,7 @@ void Tracking::SetViewer(Viewer* pViewer) { mpViewer = pViewer; }
 cv::Mat Tracking::GrabImageStereo(const cv::Mat& imRectLeft,
                                   const cv::Mat& imRectRight,
                                   const double& timestamp) {
+  std::cout << "GrabImageStereo()" << std::endl;
   mImGray = imRectLeft;
   cv::Mat imGrayRight = imRectRight;
 
@@ -1643,6 +1645,7 @@ bool Tracking::TrackReferenceKeyFrame() {
         mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         mCurrentFrame.mvbOutlier[i] = false;
         pMP->mbTrackInView = false;
+        //TODO: 添加判断设置pMP->mbTrackInViewR的值
         pMP->mnLastFrameSeen = mCurrentFrame.mnId;
         nmatches--;
 //#ifdef SCALE_ESTIMATION
@@ -1939,6 +1942,8 @@ bool Tracking::TrackWithMotionModel() {
         mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         mCurrentFrame.mvbOutlier[i] = false;
         pMP->mbTrackInView = false;
+        //TODO: 添加判断设置pMP->mbTrackInViewR的值
+
         pMP->mnLastFrameSeen = mCurrentFrame.mnId;
         nmatches--;
         // ifdef SCALE_ESTIMATION
@@ -2904,6 +2909,7 @@ bool Tracking::ReTrackWithMotionModel(cv::Mat &DR_pose)
 
                 mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                 mCurrentFrame.mvbOutlier[i]=false;
+                //TODO: 添加判断设置pMP->mbTrackInViewR的值
                 pMP->mbTrackInView = false;
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
                 nmatches--;
