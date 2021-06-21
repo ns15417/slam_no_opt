@@ -241,14 +241,6 @@ void LocalMapping::CreateNewMapPoints() {
   tcw1.copyTo(Tcw1.col(3));
   cv::Mat Ow1 = mpCurrentKeyFrame->GetCameraCenter();
 
-  const float &fx1 = mpCurrentKeyFrame->fx;
-  const float &fy1 = mpCurrentKeyFrame->fy;
-
-  const float &alpha = mpCurrentKeyFrame->mDistCoef.at<float>(0);
-  const float &beta = mpCurrentKeyFrame->mDistCoef.at<float>(1);
-
-  const float mR2range = 1.0f / (beta * (2 * alpha - 1));
-
   const float ratioFactor = 1.5f * mpCurrentKeyFrame->mfScaleFactor;
 
   int nnew = 0;
@@ -290,9 +282,6 @@ void LocalMapping::CreateNewMapPoints() {
     cv::Mat Tcw2(3, 4, CV_32F);
     Rcw2.copyTo(Tcw2.colRange(0, 3));
     tcw2.copyTo(Tcw2.col(3));
-
-    const float &fx2 = pKF2->fx;
-    const float &fy2 = pKF2->fy;
 
     // Triangulate each match
     const int nmatches = vMatchedIndices.size();
