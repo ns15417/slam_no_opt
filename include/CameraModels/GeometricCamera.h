@@ -33,6 +33,16 @@ namespace ORB_SLAM2 {
         GeometricCamera() {}
         GeometricCamera(const std::vector<float> &_vParameters) : mvParameters(_vParameters) {}
         ~GeometricCamera() {}
+
+        /**
+         * @brief projection function
+         * 
+         * @param p3D :object location in camera coordination
+         * @param uv :object location in pixel coordination after projection
+         * @return int 
+         * @note Coordinate is needed to be transformed to camera coordination
+         *       when using points in world coordination
+         */
         virtual int world2Img(const cv::Point3f &p3D, cv::Point2f &uv) = 0;
         virtual int world2Img(const cv::Mat &p3DMat, cv::Point2f &uv) = 0;
         virtual int world2Img(const Eigen::Vector3d & v3D, Eigen::Vector2d &vImguv) = 0;
