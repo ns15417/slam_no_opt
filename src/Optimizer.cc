@@ -560,6 +560,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame*>& vpKFs,
  * 
  */
 int Optimizer::PoseOutliner(Frame* pFrame){
+  std::cout << __FUNCTION__ << std::endl;
   cv::Mat Rrl = pFrame->mRrl;
   cv::Mat tlinr = pFrame->mtlinr;
 
@@ -570,7 +571,6 @@ int Optimizer::PoseOutliner(Frame* pFrame){
   const float deltaMono = sqrt(5.991);
   const float chi2Mono =  5.991;
   cv::Mat current_pose = pFrame->mTcw;
-  std::cout << "Current  pose: " << current_pose << std::endl;
   int nBad = 0;
   {
     unique_lock<mutex> lock(MapPoint::mGlobalMutex);
@@ -581,7 +581,7 @@ int Optimizer::PoseOutliner(Frame* pFrame){
       if (pMP) {
           nInitialCorrespondences++;
           cv::Mat P3D = pMP->GetWorldPos();
-          std::cout << "Original point " << P3D << std::endl;
+          //std::cout << "Original point " << P3D << std::endl;
           cv::Mat p3Dc = pFrame->mRcw*P3D + pFrame->mtcw;
         // Monocular observation
         if (pFrame->mvuRight[i] < 0) {
@@ -624,6 +624,8 @@ int Optimizer::PoseOutliner(Frame* pFrame){
       }// end of current point
     }// end of the for loop
   }
+  std::cout << "nInitialCorrespondences = " << nInitialCorrespondences
+            << ",nBad = " << nBad << std::endl;
   return nInitialCorrespondences - nBad;
 }
 

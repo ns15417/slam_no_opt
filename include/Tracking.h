@@ -186,6 +186,7 @@ protected:
     void MonocularReInitializationWithEncoder();
     void ReCreateInitialMapMonocularWithEncoder();
 
+    bool TrackWithTFPose();
     void CheckReplacedInLastFrame();
     bool TrackReferenceKeyFrame();
     void UpdateLastFrame();

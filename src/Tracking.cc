@@ -483,19 +483,24 @@ void Tracking::Track() {
         if (mbDR) mbDR = false;  // temp!!!
     }
   } 
-  else {
-    // System is initialized. Track Frame.
+  else {// System is initialized. Track Frame.
     bool bOK;
     if (!mbOnlyTracking) 
     {
       if (mState == OK) 
       {
           CheckReplacedInLastFrame();
-          if (mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 5) {
-            bOK = TrackReferenceKeyFrame();
-          } else {
-            bOK = TrackWithMotionModel();
-            if (!bOK) bOK = TrackReferenceKeyFrame();
+          mTcw_1 = mLastFrame.mTcw.clone();
+          TrackWithDR();
+          bOK = TrackWithTFPose();
+          if(!bOK){
+            std::cout << "!!!!!!!!!!!!!!!!!!Failed track with TF POSE " << std::endl;
+            if (mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 5) {
+              bOK = TrackReferenceKeyFrame();
+            } else {
+              bOK = TrackWithMotionModel();
+              if (!bOK) bOK = TrackReferenceKeyFrame();
+            }
           }
       } 
       else //LOST
@@ -685,7 +690,7 @@ void Tracking::Track() {
     mlFrameTimes.push_back(mlFrameTimes.back());
     mlbLost.push_back(mState == LOST);
   }
-  // cout << "[Track] Returning Track() with Tcw = " << mCurrentFrame.mTcw << endl;
+  cout << "[Track] Returning Track() with Tcw = " << mCurrentFrame.mTcw << endl;
 }
 
 void Tracking::ScaleforLost()
@@ -1894,6 +1899,66 @@ void Tracking::ResizePoint(const cv::Mat Tcw0, MapPoint* pMP, float scale){
   pMP->UpdateNormalAndDepth();
 }
 
+bool Tracking::TrackWithTFPose(){
+  std::cout << __FUNCTION__ << std::endl;
+  ORBmatcher matcher(0.8, true);
+  std::cout << "Last Frame pose = "<< std::endl << mLastFrame.mTcw << std::endl;
+  UpdateLastFrame();
+
+  if(mDR_Tcw.empty() || !(mCurrentFrame.mOdomFlag && mLastFrame.mOdomFlag))
+    return false;
+  
+  mCurrentFrame.SetPose(mDR_Tcw);
+  std::cout << "Current  pose: " << mCurrentFrame.mTcw << std::endl;
+
+  fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(),
+       static_cast<MapPoint*>(NULL));
+
+  int th;
+  if (mSensor != System::STEREO)
+    th = mSearchWindowSize;  // before : 15;
+  else
+    th = 7;
+  int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor == System::MONOCULAR);
+
+  if (nmatches < mnMatches)  // default: 20
+  {
+    fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(),
+         static_cast<MapPoint*>(NULL));
+    nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, 2 * th, mSensor == System::MONOCULAR);
+  }
+
+  if (nmatches < mnMatches)  
+    return false;
+
+  Optimizer::PoseOutliner(&mCurrentFrame);
+
+    // Discard outliers
+  int nmatchesMap = 0;
+  for (int i = 0; i < mCurrentFrame.N; i++) {
+    if (mCurrentFrame.mvpMapPoints[i]) {
+      if (mCurrentFrame.mvbOutlier[i]) {
+        MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+
+        mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
+        mCurrentFrame.mvbOutlier[i] = false;
+        pMP->mbTrackInView = false;
+        pMP->mbTrackInViewR = false;
+        pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+        nmatches--;
+      } else if (mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
+        nmatchesMap++;
+    }
+  }
+
+  if (mbOnlyTracking) {
+    mbVO = nmatchesMap < 10;
+    return nmatches > mnMatches;  // default: 20;
+  }
+
+  return nmatchesMap >= mnMatches;  // default: 20; // DR!!! before: 10
+}
+
 bool Tracking::TrackWithMotionModel() {
   ORBmatcher matcher(0.9, true);
 
@@ -1968,7 +2033,7 @@ bool Tracking::TrackLocalMap() {
   // frame. We retrieve the local map and try to find matches to points in the
   // local map.
   //cout << "[Tracking]: " << __FUNCTION__<<endl;
-
+  std::cout << __FUNCTION__ << std::endl;
   UpdateLocalMap();
 
   SearchLocalPoints();
@@ -2743,7 +2808,6 @@ void Tracking::TrackWithDR()
     cv::Mat Rb1b2 = cv::Mat::eye(3,3,CV_32F);
     cv::Mat tb2inb1(3,1,CV_32F);
     float dth_rad = DR_del_th; 
-
     Rb1b2.at<float>(0,0) = cos(dth_rad);
     Rb1b2.at<float>(0,1) = -sin(dth_rad);
     Rb1b2.at<float>(1,0) = sin(dth_rad);
@@ -2775,7 +2839,6 @@ void Tracking::TrackWithDR()
     mTcw_1 = Tc2w.clone();
     mDR_Tcw = mTcw_1.clone();
 
-    // cout << "new set mDR_Tcw " << mDR_Tcw << endl;
     mTcw_1.copyTo(mCurrentFrame.mTcw);
     #ifdef VISUAL
     mpMapDrawer->SetCurrentCameraPose(mDR_Tcw);
