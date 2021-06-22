@@ -57,10 +57,12 @@ namespace ORB_SLAM2 {
         virtual cv::Mat projectJac(const cv::Point3f &p3D) = 0;
         virtual Eigen::Matrix<double, 2, 3> projectJac(const Eigen::Vector3d &v3D) = 0;
 
-        virtual cv::Vec2d ComputeError(cv::Point3f &p3P) = 0;
-        virtual cv::Vec2d ComputeError(cv::Mat &P3D_Mat) = 0;
         virtual void SetMeasurement(cv::Point2f &kp_xy) = 0;
         virtual float chi2(const float sigma) = 0;
+        
+        virtual cv::Vec2d ComputeError(cv::Point3f &p3P) = 0;
+        virtual cv::Vec2d ComputeError(cv::Mat &P3D_Mat) = 0;
+
         // virtual bool epipolarConstrain(GeometricCamera* otherCamera, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Mat& R12, const cv::Mat& t12, const float sigmaLevel, const float unc) = 0;
 
         float getParameter(const int i){return mvParameters[i];}

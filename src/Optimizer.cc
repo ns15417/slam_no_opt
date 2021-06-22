@@ -569,9 +569,9 @@ int Optimizer::PoseOutliner(Frame* pFrame){
   const int N = pFrame->N;
   const float deltaMono = sqrt(5.991);
   const float chi2Mono =  5.991;
-
+  cv::Mat current_pose = pFrame->mTcw;
+  std::cout << "Current  pose: " << current_pose << std::endl;
   int nBad = 0;
-
   {
     unique_lock<mutex> lock(MapPoint::mGlobalMutex);
 
@@ -579,18 +579,19 @@ int Optimizer::PoseOutliner(Frame* pFrame){
       MapPoint* pMP = pFrame->mvpMapPoints[i];
       cv::KeyPoint kpUn;
       if (pMP) {
+          nInitialCorrespondences++;
           cv::Mat P3D = pMP->GetWorldPos();
+          std::cout << "Original point " << P3D << std::endl;
+          cv::Mat p3Dc = pFrame->mRcw*P3D + pFrame->mtcw;
         // Monocular observation
         if (pFrame->mvuRight[i] < 0) {
           kpUn = pFrame->mvKeysUn[i];
-          Eigen::Matrix<double, 2, 1> obs;
-          obs << kpUn.pt.x, kpUn.pt.y;
-          ORB_SLAM2::EdgeSE3ProjectXYZOnlyPose *e = new ORB_SLAM2::EdgeSE3ProjectXYZOnlyPose();
-          e->setMeasurement(obs);
+          cv::Point2f kpun_left(kpUn.pt.x, kpUn.pt.y);
+          //利用当前的位姿计算地图点的重投影误差
+          pFrame->mpCamera->SetMeasurement(kpun_left);
+          cv::Vec2d error = pFrame->mpCamera->ComputeError(p3Dc);
           const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
-          e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
-          e->computeError();
-          const float left_chi = e->chi2();
+          const float left_chi = pFrame->mpCamera->chi2(invSigma2);
 
           if (left_chi > chi2Mono) {
             pFrame->mvbOutlier[i] = true;
@@ -600,30 +601,19 @@ int Optimizer::PoseOutliner(Frame* pFrame){
           }
         } else  // Stereo observation
         {
-          nInitialCorrespondences++;
           pFrame->mvbOutlier[i] = false;
+          cv::Mat p3Dc_r = Rrl*p3Dc+tlinr;
           //暂定测量值是点在右目中的像素坐标
-          kpUn = pFrame->mvKeysRight[i];
+          float kpright_u = pFrame->mvuRight[i];
+          float kpright_v = pFrame->mvvRight[i];
+          cv::Point2f kpRight(kpright_u,kpright_v);
+          pFrame->mpCamera2->SetMeasurement(kpRight);
+          cv::Vec2d error_r = pFrame->mpCamera2->ComputeError(p3Dc_r);
+          int right_id = pFrame->mvMatcheslr[i];
+          const float invSigma2_r = pFrame->mvInvLevelSigma2[pFrame->mvKeysRight[right_id].octave];
 
-          Eigen::Matrix<double, 2, 1> obs;
-          obs << kpUn.pt.x, kpUn.pt.y;
-          pFrame->mvbOutlier[i] = false;
-          ORB_SLAM2::EdgeSE3ProjectXYZOnlyPoseToBody *e = new ORB_SLAM2::EdgeSE3ProjectXYZOnlyPoseToBody();
-
-          e->setMeasurement(obs);
-          const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
-          e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
-          e->pCamera = pFrame->mpCamera2;
-          cv::Mat Xw = pMP->GetWorldPos();//在世界坐标系中的坐标
-          e->Xw[0] = Xw.at<float>(0);
-          e->Xw[1] = Xw.at<float>(1);
-          e->Xw[2] = Xw.at<float>(2);
-          
-          e->mTrl = Converter::toSE3Quat(pFrame->mTrl);
-          e->computeError();
-          
-          const float chi2 = e->chi2();
-          if(chi2 > chi2Mono){
+          const float chi2 = pFrame->mpCamera2->chi2(invSigma2_r);
+          if(chi2 > chi2Mono){//右目重投影误差过大
             pFrame->mvbOutlier[i]=true;
             nBad++;
           }else
