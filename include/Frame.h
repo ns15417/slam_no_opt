@@ -215,7 +215,8 @@ public:
 
     // Camera pose.
     cv::Mat mTcw;
-
+    cv::Mat mRcw;
+    cv::Mat mtcw;
     // Current and Next Frame id.
     static long unsigned int nNextId;
     long unsigned int mnId;
@@ -263,8 +264,7 @@ private:
     void TriangulateFisheye(const cv::Point3f &p1m, const cv::Point3f &p2m, const cv::Mat &P1, const cv::Mat &P2, cv::Mat &x3D);
 
     // Rotation, translation and camera center
-    cv::Mat mRcw;
-    cv::Mat mtcw;
+
     cv::Mat mRwc;
     cv::Mat mOw; //==mtwc
     cv::Mat mRobotCw;
