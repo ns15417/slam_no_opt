@@ -459,7 +459,7 @@ void Tracking::Track() {
         }
         std::cout << "mState = NOT_INITIALIZED"<< endl;
         if (mSensor == System::STEREO || mSensor == System::RGBD)
-          StereoInitialization();
+          StereoInitialization();//双目初始化的位姿设定为mDR_Tcw
         else {
           MonocularInitializationWithEncoder();
           mInitialDRForResize.x = DR_x;
@@ -1606,9 +1606,10 @@ bool Tracking::TrackReferenceKeyFrame() {
   // cout << "nmatches: " << nmatches << endl;
 
   if (nmatches < 15) return false;
-
+  std::cout << __FUNCTION__ << " mLastFrame ID = " << mLastFrame.mnId << ", mpReferenceKF = " << 
+  mpReferenceKF->mnFrameId << std::endl;
   mCurrentFrame.mvpMapPoints = vpMapPointMatches;
-  mCurrentFrame.SetPose(mLastFrame.mTcw);
+  mCurrentFrame.SetPose(mLastFrame.mTcw);//TODO: 为什么这里要用mLastFrame的pose?
 
   Optimizer::PoseOptimization(&mCurrentFrame);
 
@@ -2115,7 +2116,6 @@ bool Tracking::NeedNewKeyFrameDR()
     return false;
 }
 
-
 void Tracking::CreateNewKeyFrame() {
   if (!mpLocalMapper->SetNotStop(true)) return;
 
@@ -2182,7 +2182,6 @@ void Tracking::CreateNewKeyFrame() {
 
   mpMap->IncreaseKFCounter();  // DR!!!
 }
-
 
 void Tracking::CreateNewKeyFrameDR() {
   if (!mpLocalMapper->SetNotStop(true)) return;
@@ -2264,8 +2263,6 @@ void Tracking::CreateNewKeyFrameDR() {
   mLastResizePose = mLastFrame.mTcw.clone();
   mScaleEst.mLastResizeFrameID = mLastResizeFrameID;
 }
-
-
 
 void Tracking::SearchLocalPoints() {
   // Do not search map points already matched
@@ -2737,7 +2734,6 @@ cv::Mat Tracking::CalculateVelocity()
     
     return Tc2c1;
 }
-
 
 void Tracking::TrackWithDR()
 {
