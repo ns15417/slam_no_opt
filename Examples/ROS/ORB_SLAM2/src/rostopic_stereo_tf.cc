@@ -85,7 +85,7 @@ class ImageGrabber {
 #else
   void GrabStereo(const sensor_msgs::ImageConstPtr & msgLeft, const sensor_msgs::ImageConstPtr &msgRight);
 #endif
-
+  int ProcessOdomData(std::string &image_time, POSE2D &use_pose);
   int PublishTF(cv::Mat &Tcw_);
   int PublishPointCloud(cv::Mat &Tcw_);
   void PublishTrajectory();
@@ -216,10 +216,10 @@ ImageGrabber::ImageGrabber(ORB_SLAM2::System *pSLAM, const std::string filepath)
     : mpSLAM(pSLAM), setting_filepath(filepath) {
   cv::FileStorage fsSettings(filepath.c_str(), cv::FileStorage::READ);
 }
-
+//Odom中存储的是baselink在world坐标中的绝对的位姿
 void ImageGrabber::GrabOdom(const geometry_msgs::TransformStamped transform) {
   tf::transformMsgToTF(transform.transform, cur_tf_pose);
-  double odom_time = transform.header.stamp.toNSec();
+  double odom_time = transform.header.stamp.toSec();
   float x = cur_tf_pose.getOrigin().x();
   float y = cur_tf_pose.getOrigin().y();
   double roll, pitch, yaw;
@@ -259,7 +259,7 @@ void ImageGrabber::GrabStereo(
     finishedCurTrack = 0;
     //clahe->apply(left_img,left_img);
     //clahe->apply(right_img,right_img);
-    std::string ts_str = std::to_string(msgLeft->header.stamp.toNSec());
+    std::string ts_str = std::to_string(msgLeft->header.stamp.toSec());
     cout << "图像话题读取成功！开始 OrbSlamUpdate函数 ！" << ts_str << endl;
     OrbSlamUpdate(left_img, right_img, ts_str);
     finishedCurTrack = 1;
@@ -300,59 +300,30 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr & msgLeft, const 
 
 int ImageGrabber::OrbSlamUpdate(cv::Mat &left_img,cv::Mat &right_img, std::string timestamp_str) {
   double timestamp = std::stod(timestamp_str);
-  cout << "[OrbSlamUpdate]: " << setprecision(18) << timestamp <<endl;
+  cout << "[OrbSlamUpdate]: " << setprecision(18) << endl << "image time: " <<  timestamp <<endl;
 #ifdef TF
-  if (odom_poses.empty()) {
-    // return 0; //这里可能是造成图像卡顿的原因，因为一直在等待odom的数据
-  }
-  std::vector<POSE2D> tmp_odom_poses;
-  std::vector<double> tmp_odom_times;
-  {
-    std::unique_lock<std::mutex> q(m);
-    tmp_odom_poses = odom_poses;
-    tmp_odom_times = odom_times;
-    if (odom_poses.size() > 2) {
-      odom_poses.erase(odom_poses.begin(), odom_poses.end() - 1);
-      odom_times.erase(odom_times.begin(), odom_times.end() - 1);
-    }
-  }
+  int ret = ProcessOdomData(timestamp_str, cur_pose);
 
-  if (frameid == 0 && tmp_odom_poses.size() < 2) {
-    cout << " No odom data for this image then continue " << tmp_odom_poses.size() << endl;
-    //  No odom data for this image then continue 0
-    return -1;
-  } else if (tmp_odom_poses.size() < 2) {
-    cout << "odom_poses size : " << tmp_odom_poses.size() << endl;
+  if(ret == -1) {//没有对应的odom数据
     mpSLAM->SetOdomFlag(false);
+    return -1;
   }
 
-  if (frameid == 0 && tmp_odom_poses.size() != 0) {
-    old_pose = tmp_odom_poses[tmp_odom_poses.size() - 1];
-    mpSLAM->SetFirstDRpose(old_pose.x, old_pose.y, old_pose.th);
-    first_pose.x = old_pose.x;
-    first_pose.y = old_pose.y;
-    first_pose.th = old_pose.th;
+  if (frameid == 0) {
+    mpSLAM->SetFirstDRpose(cur_pose.x, cur_pose.y, cur_pose.th);
+    first_pose.x = cur_pose.x;
+    first_pose.y = cur_pose.y;
+    first_pose.th = cur_pose.th;
     frameid++;
   }
   int id = 0;
 
-  while (tmp_odom_times[id] < timestamp) {
-    cur_pose = tmp_odom_poses[id];
-    id++;
-    if (id == tmp_odom_times.size()) {
-      break;
-    }
-  }
   mpSLAM->SetOdomFlag(true);
   g_del_x = cur_pose.x - old_pose.x;
   g_del_y = cur_pose.y - old_pose.y;
   g_del_th = cur_pose.th - old_pose.th;
   mpSLAM->SetDR(cur_pose.x, cur_pose.y, cur_pose.th, g_del_x, g_del_y, g_del_th);
   old_pose = cur_pose;
-
-  // cout << "g_del_th " << g_del_th << endl;
-  // std::cout << "cur_pose pose : " << cur_pose.x << " " << cur_pose.y << "  " << cur_pose.th << endl;
-  // std::cout << "current theta compared to " << (cur_pose.th - first_pose.th) / M_PI * 180.0 << endl;
 #endif
 
   cv::Mat new_left_img = left_img.clone();
@@ -367,6 +338,54 @@ int ImageGrabber::OrbSlamUpdate(cv::Mat &left_img,cv::Mat &right_img, std::strin
   if (!ret_Tcw.empty()) {
   }
   return 1;
+}
+
+//对odom_data进行插值
+int ImageGrabber::ProcessOdomData(std::string &image_time_str, POSE2D &use_pose){
+  if(odom_poses.size() == 0) return -1;
+  
+  if(odom_poses.size() == 1){
+    use_pose = odom_poses[0];
+    return 0;
+  }
+
+  double x_new, y_new, th_new;
+  double image_time = std::stod(image_time_str);
+  int odom_num = odom_poses.size();
+  if (odom_times[odom_num - 1] < image_time) {
+    double dt = image_time - odom_times[odom_num - 1];
+    double t2 = odom_times[odom_num - 1];
+    double t1 = odom_times[odom_num - 2];
+    x_new = odom_poses[odom_num - 1].x +
+                   (odom_poses[odom_num - 1].x - odom_poses[odom_num - 2].x) /
+                       (t2 - t1) * dt;
+    y_new = odom_poses[odom_num - 1].y +
+                   (odom_poses[odom_num - 1].y - odom_poses[odom_num - 2].y) /
+                       (t2 - t1) * dt;
+    th_new = odom_poses[odom_num - 1].th +
+                   (odom_poses[odom_num - 1].th - odom_poses[odom_num - 2].th) /
+                       (t2 - t1) * dt;
+  }
+
+  if (odom_times[odom_num - 1] > image_time) {
+    double dt = odom_times[odom_num - 1] - image_time;
+    double t2 = odom_times[odom_num - 1];
+    double t1 = odom_times[odom_num - 2];
+    x_new = odom_poses[odom_num - 1].x -
+            (odom_poses[odom_num - 1].x - odom_poses[odom_num - 1].x) /
+                (t2 - t1) * dt;
+    y_new = odom_poses[odom_num - 1].y -
+            (odom_poses[odom_num - 1].y - odom_poses[odom_num - 1].y) /
+                (t2 - t1) * dt;
+    th_new = odom_poses[odom_num - 1].th -
+            (odom_poses[odom_num - 1].th - odom_poses[odom_num - 1].th) /
+                (t2 - t1) * dt;
+  }
+
+  use_pose.x = x_new;
+  use_pose.y = y_new;
+  use_pose.th = th_new;
+  return 0;
 }
 
 int ImageGrabber::PublishTF(cv::Mat &Tcw_) {
@@ -455,6 +474,7 @@ int ImageGrabber::PublishPointCloud(cv::Mat &Tcw_) {
 
     validpts++;
   }
+
 }
 
 void ImageGrabber::SetCam2Baselink(cv::Mat &Tbc) {
