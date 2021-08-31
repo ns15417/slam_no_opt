@@ -1,0 +1,119 @@
+%YAML:1.0
+---
+Camera.type: KB
+Camera.fx: 2.1445060729980469e+02
+Camera.fy: 2.8609997558593750e+02
+Camera.cx: 3.2081094360351562e+02
+Camera.cy: 2.2230169677734375e+02
+Camera.k1: 1.5917544066905975e-01
+Camera.k2: 1.1212667077779770e-01
+Camera.p1: -7.3784165084362030e-02
+Camera.p2: 3.1584538519382477e-02
+Camera.width: 640
+Camera.height: 480
+Camera.fps: 20
+Camera.bf: -2.4191785812377930e+01
+Camera.RGB: 1
+ThDepth: 3
+Camera.Tbc: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [0.00520838744612064, -0.275605519614924, 0.9612567140249263,1.16028361e-01,
+          -0.9999860075242785, -0.0005453417702293304, 0.00526187780239818, 0.056,
+          -0.0009259891278090007, -0.9612706695619821, -0.2756045035626119, 2.85499990e-01,
+          0., 0., 0., 1. ]
+#0.8028361e-01,0.056, 0.948361e-01
+#    data: [ 6.52304385e-04, -2.04367831e-01, 9.78893936e-01,
+#        1.16028361e-01, -9.99727666e-01, -2.23629307e-02, -6.66930620e-03,
+#        0.056, 2.33271345e-02, -9.49667871e-01, -3.12388718e-01,
+#        2.85499990e-01, 0., 0., 0., 1. ]
+LEFT.width: 640
+LEFT.height: 480
+LEFT.D: !!opencv-matrix
+   rows: 4
+   cols: 1
+   dt: d
+   data: [ 1.5917544066905975e-01, 1.1212667077779770e-01,
+       -7.3784165084362030e-02, 3.1584538519382477e-02 ]
+LEFT.K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: f
+   data: [ 2.14450607e+02, 0., 3.20810944e+02, 0., 2.86099976e+02,
+       2.22301697e+02, 0., 0., 1. ]
+CAMERA.R: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 9.9993684117968207e-01, -1.1229758608794769e-02,
+       -4.5406297728836973e-04, 1.1231233463760417e-02,
+       9.9993118903811584e-01, 3.3877106874992766e-03,
+       4.1598855952107954e-04, -3.3925964109938539e-03,
+       9.9999415860449425e-01 ]
+CAMERA.T: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -1.1280819033940258e-01, -1.4938084699632312e-03,
+       2.6591578275884670e-04 ]
+RIGHT.width: 640
+RIGHT.height: 480
+RIGHT.D: !!opencv-matrix
+   rows: 4
+   cols: 1
+   dt: d
+   data: [ 1.8174012005329132e-01, 1.0056944191455841e-01,
+       -6.0143433511257172e-02, 3.0010018497705460e-02 ]
+RIGHT.K: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: f
+   data: [ 2.14955414e+02, 0., 3.02332825e+02, 0., 2.86519440e+02,
+       2.36880493e+02, 0., 0., 1. ]
+ORBextractor.nFeatures: 800
+ORBextractor.scaleFactor: 1.2000000000000000e+00
+ORBextractor.nLevels: 8
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7
+Track.nMatches: 30
+Track.SearchWindowSize: 20
+Track.nFeaturesForStereoReinit: 5
+Track.nThresTrackLocalMap: 30
+LoopClose.nCovisibilityConsistencyTh: 6
+
+#--------------------------------------------------------------------------------------------
+# Robot Parameters
+#--------------------------------------------------------------------------------------------
+Robot.distCameraFromRobotCenter_x: 0.1162 # distance between camera and robot center in horizonal 
+Robot.distCameraFromRobotCenter_y: 0
+Robot.distCameraFromRobotCenter_z: 0.2355 #dist between cam and robot center in vertiacal 
+Robot.distbetwheels: 0.289  #0.325
+Robot.distOnePulse: 0.00053428 #0.000032057
+Robot.wheelradius: 0.1    #0.05
+Robot.PulsePerRev: 1862  
+#--------------------------------------------------------------------------------------------
+# Scale Estimator Parameters
+#--------------------------------------------------------------------------------------------
+ScaleEst.minDistDR: 3.0   #  minimum DR distance for computing scale
+ScaleEst.mMinKFs: 10      #  minimum KFs
+ScaleEst.mScaleDriftThresh: 2.0 # relative scale drift threshold
+ScaleEst.mMinDist: 3.0    # minium DR distacne to check scale drift
+ScaleEst.mDELimit: 1.0    # absolute scale drift threshold
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
+
+left.rms: 3.7770734491747365e-01
+right.rms: 4.5023380529611673e-01
+stereo.rms: 4.4865087600775672e-01
