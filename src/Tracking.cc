@@ -344,7 +344,7 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat& imRectLeft,
   cout << " ------------ Frame ID: " << mCurrentFrame.mnId << " -------------"
        << endl;
   Track();
-  cout << " ------------ mState: " << mState << " -----------------" << endl;
+  cout << " ------------ mState: " << mState << " -----------------track failed number = " << track_failed_num << std::endl;
   return mCurrentFrame.mTcw.clone();
 }
 
@@ -411,7 +411,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat& im,
        << endl;
 
   Track();
-  cout << " ------------ mState: " << mState << " -----------------" << endl;
+  cout << " ------------ mState: " << mState << " ----------------- track failed number = " << track_failed_num << endl;
   return mCurrentFrame.mTcw.clone();
 }
 
@@ -494,6 +494,7 @@ void Tracking::Track() {
           TrackWithDR();
           bOK = TrackWithTFPose();
           if(!bOK){
+            track_failed_num++;
             std::cout << "!!!!!!!!!!!!!!!!!!Failed track with TF POSE " << std::endl;
             if (mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 5) {
               bOK = TrackReferenceKeyFrame();
@@ -690,7 +691,7 @@ void Tracking::Track() {
     mlFrameTimes.push_back(mlFrameTimes.back());
     mlbLost.push_back(mState == LOST);
   }
-  cout << "[Track] Returning Track() with Tcw = " << mCurrentFrame.mTcw << endl;
+  cout << "[Track] Returning Track() with Tcw = " << mCurrentFrame.mTcw.inv() << endl;
 }
 
 void Tracking::ScaleforLost()
@@ -1128,6 +1129,7 @@ void Tracking::StereoReinitialization() {
   cout << "  StereoReinitialization()" << endl;
 
   if (mCurrentFrame.N > mnFeaturesForStereoReinit) {
+    std::cout << __FUNCTION__ << "(), set pose to "<< std::endl<< mDR_Tcw.inv() << std::endl;
     mCurrentFrame.SetPose(mDR_Tcw);
     // Create KeyFrame
     KeyFrame *pKFini =
@@ -1902,14 +1904,12 @@ void Tracking::ResizePoint(const cv::Mat Tcw0, MapPoint* pMP, float scale){
 bool Tracking::TrackWithTFPose(){
   std::cout << __FUNCTION__ << std::endl;
   ORBmatcher matcher(0.8, true);
-  std::cout << "Last Frame pose = "<< std::endl << mLastFrame.mTcw << std::endl;
   UpdateLastFrame();
 
   if(mDR_Tcw.empty() || !(mCurrentFrame.mOdomFlag && mLastFrame.mOdomFlag))
     return false;
   
   mCurrentFrame.SetPose(mDR_Tcw);
-  std::cout << "Current  pose: " << mCurrentFrame.mTcw << std::endl;
 
   fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(),
        static_cast<MapPoint*>(NULL));
@@ -2040,6 +2040,7 @@ bool Tracking::TrackLocalMap() {
 
   // Optimize Pose
   Optimizer::PoseOptimization(&mCurrentFrame);
+  cout << "mCurrentFrame = " << mCurrentFrame.mTcw.inv() << endl;
   mnMatchesInliers = 0;
   // Update MapPoints Statistics
   for (int i = 0; i < mCurrentFrame.N; i++) {
@@ -2802,6 +2803,8 @@ cv::Mat Tracking::CalculateVelocity()
 
 void Tracking::TrackWithDR()
 {
+    cout << __FUNCTION__ << endl;
+    cout << "mTcw_1 = " << mTcw_1.inv()<< endl;
     cv::Mat Tc1w = mTcw_1.clone();
     cv::Mat Tb2b1;
     cv::Mat Tb1b2 = cv::Mat::eye(4,4,CV_32F);
@@ -2817,7 +2820,7 @@ void Tracking::TrackWithDR()
     float thc = atan2(DR_del_y, DR_del_x) - DR_th;
     float d_xr = d * cos(thc); //在baselink1的坐标系中baselink2的位移
     float d_yr = d * sin(thc);
-
+    std::cout << "DR_del_x = " << DR_del_x << ", DR_del_y = " << DR_del_y << ", DR_del_th = " << DR_del_th << endl;
     tb2inb1.at<float>(0) = d_xr;
     tb2inb1.at<float>(1) = d_yr;
     tb2inb1.at<float>(2) = 0;
@@ -2838,6 +2841,7 @@ void Tracking::TrackWithDR()
     // cout << "Tc2w: " << Tc2w << endl; 
     mTcw_1 = Tc2w.clone();
     mDR_Tcw = mTcw_1.clone();
+    cout << "mDR_Tcw = " << mDR_Tcw.inv() << endl;
 
     mTcw_1.copyTo(mCurrentFrame.mTcw);
     #ifdef VISUAL

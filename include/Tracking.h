@@ -207,7 +207,6 @@ protected:
     void CreateNewKeyFrame();
     void CreateNewKeyFrameDR();
     
-
     float DistBetweenFrames(const Frame &lastFrame, const Frame &currentFrame);
 
     void ResizePose(const cv::Mat Tcw0, Frame &currentFrame, float scale);
@@ -223,7 +222,7 @@ protected:
     // In that case we are doing visual odometry. The system will try to do relocalization to recover
     // "zero-drift" localization to the map.
     bool mbVO;
-
+    int track_failed_num = 0;
     //Other Thread Pointers
     LocalMapping* mpLocalMapper;
     LoopClosing* mpLoopClosing;

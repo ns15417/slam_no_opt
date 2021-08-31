@@ -865,7 +865,6 @@ int Optimizer::PoseOptimization(Frame* pFrame)
     optimizer.setAlgorithm(solver);
 
     int nInitialCorrespondences=0;
-    cout << "[PoseOptimization] pFrame->mTcw: " << pFrame->mTcw<<endl;
     // Set Frame vertex
     g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
     vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
